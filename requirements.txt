@@ -1,0 +1,10 @@
+streamlit>=1.36,<2
+streamlit-folium>=0.20,<1
+folium>=0.17,<1
+pandas>=2.2,<3
+geopandas>=1.0,<2
+shapely>=2.0,<3
+pyproj>=3.6,<4
+requests>=2.32,<3
+beautifulsoup4>=4.12,<5
+pytest>=8.2,<9
