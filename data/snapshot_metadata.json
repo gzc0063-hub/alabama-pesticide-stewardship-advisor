@@ -1,0 +1,10 @@
+{
+  "pula_date": "not-yet-fetched",
+  "heap_date": "not-yet-fetched",
+  "source_urls": {
+    "blt": "https://www.epa.gov/endangered-species/bulletins-live-two-view-bulletins",
+    "palm": "https://www.epa.gov/pesticides/mitigation-menu",
+    "heap": "https://www.weedscience.org/Summary/Country.aspx?CountryID=45"
+  },
+  "notes": "Initial metadata placeholder. Replace dates after verified data snapshots are fetched."
+}
