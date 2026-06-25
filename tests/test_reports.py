@@ -1,5 +1,6 @@
 import csv
 
+from src.extension_contacts import contacts_for_crop_or_site, load_contacts
 from src.reports import (
     REPORT_COLUMNS,
     build_email_message,
@@ -74,3 +75,28 @@ def test_build_email_message_uses_suspected_language():
     assert "Suspected resistance report" in message["subject"]
     assert "not a confirmation" in message["body"]
     assert "Palmer amaranth" in message["body"]
+
+
+def test_load_contacts_reads_expected_columns(tmp_path):
+    path = tmp_path / "contacts.csv"
+    path.write_text(
+        "name,role,email,phone,specialty,crop_focus,specialty_tags,source_url,verified_as_of\n"
+        "Specialist,Weed Scientist,specialist@example.com,334-555-0000,Row crops,Soybean,row crop;soybean,https://example.com,2026-06-25\n",
+        encoding="utf-8",
+    )
+    contacts = load_contacts(path)
+    assert contacts[0]["name"] == "Specialist"
+    assert contacts[0]["verified_as_of"] == "2026-06-25"
+
+
+def test_contacts_for_crop_or_site_filters_by_tags(tmp_path):
+    path = tmp_path / "contacts.csv"
+    path.write_text(
+        "name,role,email,phone,specialty,crop_focus,specialty_tags,source_url,verified_as_of\n"
+        "Row Specialist,Weed Scientist,row@example.com,334-555-0001,Row crops,Cotton,row crop;cotton;soybean,https://example.com,2026-06-25\n"
+        "Forage Specialist,Weed Scientist,forage@example.com,334-555-0002,Forage,Pasture,forage;pasture,https://example.com,2026-06-25\n",
+        encoding="utf-8",
+    )
+    contacts = contacts_for_crop_or_site("cotton", path)
+    assert len(contacts) == 1
+    assert contacts[0]["email"] == "row@example.com"
