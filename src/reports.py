@@ -1,5 +1,7 @@
 import csv
+import smtplib
 from datetime import datetime, timezone
+from email.message import EmailMessage
 from pathlib import Path
 from typing import Iterable
 
@@ -82,3 +84,22 @@ def build_email_message(report: dict, recipient: dict) -> dict:
         f"Notes: {report.get('weather_notes', '')}\n"
     )
     return {"subject": subject, "body": body}
+
+
+def send_email_notification(message: dict, smtp_settings: dict | None) -> bool:
+    if not smtp_settings:
+        return False
+    required = ["host", "port", "username", "password", "sender", "recipient"]
+    if any(not smtp_settings.get(key) for key in required):
+        return False
+
+    email = EmailMessage()
+    email["Subject"] = message["subject"]
+    email["From"] = smtp_settings["sender"]
+    email["To"] = smtp_settings["recipient"]
+    email.set_content(message["body"])
+
+    with smtplib.SMTP_SSL(smtp_settings["host"], int(smtp_settings["port"])) as smtp:
+        smtp.login(smtp_settings["username"], smtp_settings["password"])
+        smtp.send_message(email)
+    return True
