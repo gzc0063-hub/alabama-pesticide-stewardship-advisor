@@ -2,6 +2,7 @@ from pathlib import Path
 
 import folium
 import streamlit as st
+from streamlit.errors import StreamlitSecretNotFoundError
 from streamlit_folium import st_folium
 
 from src.data_epa import load_snapshot_metadata, validate_metadata
@@ -27,9 +28,12 @@ st.set_page_config(page_title="PULA Awareness Tool", layout="wide")
 
 
 def smtp_settings_from_secrets() -> dict | None:
-    if "smtp" not in st.secrets:
+    try:
+        if "smtp" not in st.secrets:
+            return None
+        smtp = st.secrets["smtp"]
+    except StreamlitSecretNotFoundError:
         return None
-    smtp = st.secrets["smtp"]
     return {
         "host": smtp.get("host"),
         "port": smtp.get("port"),
