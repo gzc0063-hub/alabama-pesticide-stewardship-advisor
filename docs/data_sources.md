@@ -25,3 +25,14 @@ Displayed resistance information is reported database context, not proof that a 
 ## Extension Contacts
 
 Contact records must come from official Alabama Extension or Auburn pages and include a verified-as-of date.
+
+## Live Verification Checklist
+
+Before publishing a public demo:
+
+- Verify the current BLT route or workflow for product/location/month checks.
+- Verify the EPA PULA polygon source endpoint and schema.
+- Verify the EPA PULA limitations CSV source and schema if used.
+- Verify the current weedscience.org U.S. resistance table structure.
+- Verify Alabama Extension specialist contact records from official pages.
+- Record verification dates in `data/snapshot_metadata.json` or the contact CSV.
