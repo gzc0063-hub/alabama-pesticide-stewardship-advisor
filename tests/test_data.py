@@ -77,6 +77,8 @@ def test_nearest_pula_summary_returns_distance_and_attributes():
             "pula_id": [101],
             "event_name": ["Nearest event"],
             "status": ["effective"],
+            "codes": ["ESA_TEST"],
+            "effective_date": ["2026-01-01"],
         },
         geometry=[
             Polygon([(-86.7, 32.5), (-86.6, 32.5), (-86.6, 32.6), (-86.7, 32.6)]),
@@ -89,5 +91,7 @@ def test_nearest_pula_summary_returns_distance_and_attributes():
     assert result is not None
     assert result["pula_id"] == 101
     assert result["event_name"] == "Nearest event"
+    assert result["codes"] == "ESA_TEST"
+    assert result["effective_date"] == "2026-01-01"
     assert result["distance_miles"] > 5
     assert result["distance_miles"] < 15

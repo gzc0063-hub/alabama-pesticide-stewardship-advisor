@@ -70,6 +70,8 @@ def nearest_pula_summary(lat: float, lon: float, pulas: gpd.GeoDataFrame) -> dic
         "pula_id": nearest.get("pula_id", ""),
         "event_name": nearest.get("event_name", ""),
         "status": nearest.get("status", ""),
+        "codes": nearest.get("codes", ""),
         "effective_date": nearest.get("effective_date", ""),
+        "published_time_stamp": nearest.get("published_time_stamp", ""),
         "distance_miles": distance_miles,
     }

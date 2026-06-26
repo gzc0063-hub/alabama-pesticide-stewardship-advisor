@@ -1,0 +1,11 @@
+species,common_name,state,first_year,site_of_action,resist_id,crop_tags,source_url,verified_as_of
+Poa annua,Annual Bluegrass,Alabama,1980,PSII inhibitors - Serine 264 binders (Group 5),1166,turf;pasture;right-of-way,https://www.weedscience.org/Summary/Country.aspx?CountryID=45,2026-06-25
+Eleusine indica,Goosegrass,Alabama,1987,Microtubule assembly inhibitors (Group 3),223,turf;right-of-way;row crop,https://www.weedscience.org/Summary/Country.aspx?CountryID=45,2026-06-25
+Xanthium strumarium,Common Cocklebur,Alabama,1988,Nucleic acid inhibitors (Group 17),224,soybean;cotton;corn;row crop,https://www.weedscience.org/Summary/Country.aspx?CountryID=45,2026-06-25
+Amaranthus palmeri,Palmer Amaranth,Alabama,2008,EPSPS inhibitors (Group 9),5388,cotton;soybean;corn;peanut;row crop,https://www.weedscience.org/Summary/Country.aspx?CountryID=45,2026-06-25
+Poa annua,Annual Bluegrass,Alabama,2012,ALS inhibitors (Group 2),5644,turf;pasture;right-of-way,https://www.weedscience.org/Summary/Country.aspx?CountryID=45,2026-06-25
+Poa annua,Annual Bluegrass,Alabama,2012,Microtubule assembly inhibitors (Group 3),5695,turf;pasture;right-of-way,https://www.weedscience.org/Summary/Country.aspx?CountryID=45,2026-06-25
+Conyza canadensis,Horseweed,Alabama,2013,EPSPS inhibitors (Group 9),7783,cotton;soybean;corn;row crop;pasture,https://www.weedscience.org/Summary/Country.aspx?CountryID=45,2026-06-25
+Ambrosia artemisiifolia,Common Ragweed,Alabama,2013,EPSPS inhibitors (Group 9),7784,cotton;soybean;corn;row crop;pasture,https://www.weedscience.org/Summary/Country.aspx?CountryID=45,2026-06-25
+Cyperus compressus,Annual Sedge,Alabama,2015,ALS inhibitors (Group 2),11012,turf;rice;wetland;right-of-way,https://www.weedscience.org/Summary/Country.aspx?CountryID=45,2026-06-25
+Eleusine indica,Goosegrass,Alabama,2019,PSI electron diversion (Group 22),18191,turf;right-of-way;row crop,https://www.weedscience.org/Summary/Country.aspx?CountryID=45,2026-06-25
