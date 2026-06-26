@@ -53,6 +53,8 @@ PULA_FULL_PATH = Path("data/pula_alabama.geojson")
 PULA_DISPLAY_PATH = Path("data/pula_alabama_display.geojson")
 ACES_COUNTIES_URL = "https://www.aces.edu/counties/"
 ACES_DIRECTORY_URL = "https://ssl.acesag.auburn.edu/directory-new/programAgentSearch.php?program=1"
+ALABAMA_MAP_BOUNDS = [[30.1, -88.55], [35.05, -84.85]]
+ALABAMA_MAP_CENTER = [32.8067, -86.7911]
 
 
 def apply_theme() -> None:
@@ -223,6 +225,11 @@ def apply_theme() -> None:
         }
         div[data-testid="stAlert"] {
           border-radius: 8px;
+        }
+        div[data-testid="stIFrame"] iframe {
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          box-shadow: 0 10px 24px rgba(12,35,64,.08);
         }
         </style>
         """,
@@ -683,11 +690,32 @@ def render_main_app() -> None:
 
     with left:
         st.markdown('<div class="panel"><div class="panel-title">Alabama Cached PULA Map</div>', unsafe_allow_html=True)
-        m = folium.Map(location=[32.8067, -86.7911], zoom_start=7, tiles="CartoDB positron")
+        m = folium.Map(
+            location=ALABAMA_MAP_CENTER,
+            zoom_start=7,
+            tiles="CartoDB positron",
+            min_zoom=6,
+            max_zoom=12,
+            min_lat=ALABAMA_MAP_BOUNDS[0][0],
+            max_lat=ALABAMA_MAP_BOUNDS[1][0],
+            min_lon=ALABAMA_MAP_BOUNDS[0][1],
+            max_lon=ALABAMA_MAP_BOUNDS[1][1],
+            max_bounds=True,
+            control_scale=True,
+            prefer_canvas=True,
+            zoom_control="topright",
+        )
+        m.fit_bounds(ALABAMA_MAP_BOUNDS)
         add_pula_layer(m, display_geojson)
         folium.LayerControl(collapsed=True).add_to(m)
-        map_state = st_folium(m, height=500, use_container_width=True)
-        st.caption("Orange regions are cached EPA PULA polygons intersecting Alabama. Always verify official requirements in BLT.")
+        map_state = st_folium(
+            m,
+            height=500,
+            use_container_width=True,
+            returned_objects=["last_clicked"],
+            key="alabama_pula_map",
+        )
+        st.caption("Map is bounded to Alabama for faster navigation. Orange regions are cached EPA PULA polygons intersecting Alabama; always verify official requirements in BLT.")
         render_map_context()
         st.markdown("</div>", unsafe_allow_html=True)
 
