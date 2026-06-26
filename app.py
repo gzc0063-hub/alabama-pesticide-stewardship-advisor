@@ -20,6 +20,7 @@ from src.data_heap import heap_attribution
 from src.disclaimers import (
     BLT_URL,
     HEAP_URL,
+    EDDMAPS_URL,
     PALM_URL,
     get_primary_disclaimer,
     get_resistance_disclaimer,
@@ -261,7 +262,7 @@ def apply_theme() -> None:
         }
         .resource-strip {
           display:grid;
-          grid-template-columns: repeat(5, minmax(0, 1fr));
+          grid-template-columns: repeat(6, minmax(0, 1fr));
           gap: 12px;
           margin: 12px 0 14px;
         }
@@ -406,6 +407,11 @@ def render_links() -> None:
             "weedscience.org",
             HEAP_URL,
             "International Herbicide-Resistant Weed Database: source for reported resistance records.",
+        ),
+        (
+            "EDDMapS",
+            EDDMAPS_URL,
+            "EDDMapS distribution maps: reported weed and invasive species occurrence context.",
         ),
         (
             "ACES Counties",
@@ -620,6 +626,38 @@ def render_resistance_context(crop_or_site: str, lat: float | None, lon: float |
         if crop_or_site and matching_rows == rows:
             st.caption("No exact crop/site tag match was found, so the statewide Alabama resistance context is shown.")
         st.link_button("Open weedscience.org source", HEAP_URL)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_eddmaps_context(lat: float | None, lon: float | None) -> None:
+    st.markdown(
+        """
+        <div class="panel">
+          <div class="panel-title">Nearby Weed / Invasive Occurrence Context</div>
+          <div class="soft-note">EDDMapS reported occurrence context; not field confirmation.</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.caption("Source: EDDMapS distribution maps, University of Georgia Center for Invasive Species and Ecosystem Health.")
+    with st.expander("Show EDDMapS context"):
+        radius = st.radio(
+            "Review radius",
+            ["1 mile", "5 miles", "10 miles"],
+            horizontal=True,
+            help="1 mile is the default field-neighborhood view; broaden only if no useful context is available.",
+        )
+        if lat is not None and lon is not None:
+            st.write(f"Selected location: `{lat:.5f}, {lon:.5f}`")
+            st.info(
+                f"This review placeholder is set to {radius}. A future data integration should show the nearest public EDDMapS occurrence records within this radius when a reliable endpoint or approved dataset is available."
+            )
+        else:
+            st.write("Choose a location to prepare the EDDMapS proximity review.")
+        st.write(
+            "Use this as weed/invasive occurrence context only. EDDMapS reports do not confirm a species is present in the selected field and do not confirm herbicide resistance."
+        )
+        st.link_button("Open EDDMapS distribution maps", EDDMAPS_URL)
     st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -922,6 +960,7 @@ def render_main_app() -> None:
 
     with left:
         render_resistance_context(crop_or_site, selected_lat, selected_lon)
+        render_eddmaps_context(selected_lat, selected_lon)
         render_report_cta()
 
 

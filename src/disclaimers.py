@@ -1,6 +1,7 @@
 BLT_URL = "https://www.epa.gov/endangered-species/bulletins-live-two-view-bulletins"
 PALM_URL = "https://www.epa.gov/pesticides/mitigation-menu"
 HEAP_URL = "https://www.weedscience.org/Summary/Country.aspx?CountryID=45"
+EDDMAPS_URL = "https://www.eddmaps.org/distribution/"
 HEAP_CITATION = (
     "Heap, I. The International Herbicide-Resistant Weed Database. "
     "www.weedscience.org."

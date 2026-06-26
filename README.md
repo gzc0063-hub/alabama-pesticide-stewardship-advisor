@@ -1,6 +1,8 @@
 # PULA Awareness Tool
 
-An educational planning tool that helps users view EPA Pesticide Use Limitation Area context alongside herbicide-resistance context. The first release focuses on Alabama and is designed for later U.S. expansion.
+Working broader review name: **Alabama Pesticide Stewardship Advisor**.
+
+An educational planning tool that helps users view EPA Pesticide Use Limitation Area context alongside ESA mitigation planning, USDA soil/HSG context, herbicide-resistance context, weed/invasive occurrence context, and Alabama Extension routing. The first release focuses on Alabama and is designed for later U.S. expansion.
 
 ## What This Is
 
@@ -24,7 +26,9 @@ Applicators must verify official requirements in EPA Bulletins Live! Two for the
 
 - EPA Bulletins Live! Two and EPA Pesticide Use Limitation Area data.
 - EPA PALM for mitigation planning.
+- USDA Soil Data Access for hydrologic soil group context.
 - Heap, I. The International Herbicide-Resistant Weed Database. www.weedscience.org.
+- EDDMapS distribution maps for linked weed/invasive occurrence context. The app does not yet ingest EDDMapS proximity records directly.
 - Alabama Cooperative Extension System contact information from official Extension pages.
 
 ## Development

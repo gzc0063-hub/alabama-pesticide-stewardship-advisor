@@ -32,6 +32,20 @@ Heap, I. The International Herbicide-Resistant Weed Database. www.weedscience.or
 
 Displayed resistance information is reported database context, not proof that a specific field has or does not have resistance.
 
+## EDDMapS Occurrence Context
+
+EDDMapS distribution maps are linked for reported weed/invasive occurrence context:
+
+`https://www.eddmaps.org/distribution/`
+
+The current app provides a cautious EDDMapS review panel with 1, 5, and 10 mile radius choices. It does not yet ingest nearby EDDMapS records directly because a stable public proximity endpoint or approved dataset still needs verification.
+
+EDDMapS context must remain separate from herbicide-resistance context. EDDMapS reports are occurrence observations and do not confirm field presence or herbicide resistance.
+
+## USDA Soil Data Access
+
+The ESA mitigation panel uses USDA Soil Data Access to look up hydrologic soil group from selected coordinates. The query uses the SSURGO `hydgrp` field from the dominant component at the point.
+
 ## Extension Contacts
 
 Contact records must come from official Alabama Extension or Auburn pages and include a verified-as-of date.

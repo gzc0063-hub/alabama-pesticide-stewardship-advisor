@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>PULA Awareness Tool</title>
+    <title>Alabama Pesticide Stewardship Advisor</title>
     <style>
       :root {
         --navy: #0c2340;
@@ -153,10 +153,10 @@
     <header>
       <div class="wrap brand">
         <div>
-          <h1>PULA Awareness Tool</h1>
+          <h1>Alabama Pesticide Stewardship Advisor</h1>
           <div class="sub">
-            Auburn-inspired educational mapping for EPA PULA awareness, resistance context,
-            and Alabama Extension routing.
+            Auburn-inspired educational mapping for EPA PULA awareness, ESA mitigation planning,
+            resistance and occurrence context, and Alabama Extension routing.
           </div>
           <div class="accent"></div>
         </div>
@@ -176,8 +176,9 @@
           <h2>What The App Does</h2>
           <p>
             The Streamlit app highlights cached Alabama-intersecting PULA polygons, checks the
-            nearest cached PULA for a selected point, links users to BLT/PALM, and routes users
-            to Alabama Extension support.
+            nearest cached PULA for a selected point, looks up USDA soil/HSG context, supports
+            ESA mitigation point planning, links users to BLT/PALM, and routes users to Alabama
+            Extension support.
           </p>
           <div class="actions">
             <a class="button" href="https://share.streamlit.io/" aria-label="Open Streamlit app placeholder">Open App</a>
@@ -189,6 +190,9 @@
           <h2>Current MVP</h2>
           <ul>
             <li>Alabama PULA snapshot loaded from EPA BLT ArcGIS data.</li>
+            <li>USDA Soil Data Access HSG lookup from coordinates.</li>
+            <li>Embedded ESA mitigation point planning worksheet.</li>
+            <li>EDDMapS occurrence-context review panel with radius choices.</li>
             <li>County office routing from selected coordinates.</li>
             <li>Crop/site specialist routing from ACES profile data.</li>
             <li>Private suspected resistance report capture.</li>
