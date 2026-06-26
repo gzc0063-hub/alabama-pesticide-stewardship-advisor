@@ -54,6 +54,45 @@ ACTIVE_ESA_PRODUCTS = [
     },
 ]
 
+MITIGATION_PRACTICES = [
+    {
+        "id": "recordkeeping",
+        "name": "Recordkeeping of mitigation practices",
+        "points": 1,
+        "category": "Documentation",
+    },
+    {
+        "id": "no-till",
+        "name": "No-till or strip-till field management",
+        "points": 2,
+        "category": "Erosion/runoff",
+    },
+    {
+        "id": "cover-crop",
+        "name": "Cover crop or living cover",
+        "points": 1,
+        "category": "Erosion/runoff",
+    },
+    {
+        "id": "vegetated-filter-strip",
+        "name": "Vegetated filter strip",
+        "points": 1,
+        "category": "Edge-of-field",
+    },
+    {
+        "id": "terrace-contour",
+        "name": "Terraces, contour farming, or contour buffer strips",
+        "points": 2,
+        "category": "Erosion/runoff",
+    },
+    {
+        "id": "grassed-waterway",
+        "name": "Grassed waterway",
+        "points": 1,
+        "category": "Edge-of-field",
+    },
+]
+
 
 def county_mitigation_context(county_name: str) -> dict | None:
     county = normalize_county_name(county_name)
@@ -79,6 +118,13 @@ def active_esa_products_for_crop(crop_or_site: str) -> list[dict]:
     return matches
 
 
+def product_by_name(product_name: str) -> dict | None:
+    for product in ACTIVE_ESA_PRODUCTS:
+        if product["name"] == product_name:
+            return product
+    return None
+
+
 def enlist_runoff_points_for_hsg(hsg: str) -> int | None:
     value = str(hsg).strip().upper()
     if value in {"A", "B", "A/D", "B/D"}:
@@ -88,14 +134,78 @@ def enlist_runoff_points_for_hsg(hsg: str) -> int | None:
     return None
 
 
+def required_runoff_points(product: dict | None, hsg: str) -> int | None:
+    if not product:
+        return None
+    if product["name"].startswith("Enlist"):
+        return enlist_runoff_points_for_hsg(hsg)
+    points = product.get("runoff_points")
+    return points if isinstance(points, int) else None
+
+
+def selected_practices(selected_practice_ids: list[str]) -> list[dict]:
+    selected = set(selected_practice_ids)
+    return [
+        practice
+        for practice in MITIGATION_PRACTICES
+        if practice["id"] in selected and practice["id"] != "recordkeeping"
+    ]
+
+
+def calculate_mitigation_summary(
+    county: str | None,
+    product_name: str,
+    hsg: str,
+    selected_practice_ids: list[str],
+    recordkeeping: bool,
+) -> dict:
+    product = product_by_name(product_name)
+    county_context = county_mitigation_context(county or "") if county else None
+    required = required_runoff_points(product, hsg)
+    practices = selected_practices(selected_practice_ids)
+    county_points = county_context["county_relief_points"] if county_context else 0
+    practice_points = sum(int(practice["points"]) for practice in practices)
+    recordkeeping_points = 1 if recordkeeping else 0
+    total = county_points + practice_points + recordkeeping_points
+    needs_hsg = bool(product and product["name"].startswith("Enlist") and required is None)
+    return {
+        "product": product,
+        "county_context": county_context,
+        "required_points": required,
+        "county_relief_points": county_points,
+        "selected_practices": practices,
+        "practice_points": practice_points,
+        "recordkeeping_points": recordkeeping_points,
+        "total_points": total,
+        "needs_hsg": needs_hsg,
+        "meets_points": required is not None and total >= required,
+    }
+
+
 def build_mitigation_report(
     lat: float | None,
     lon: float | None,
     county: str | None,
     crop_or_site: str,
+    product_name: str | None = None,
+    hsg: str = "Unknown",
+    selected_practice_ids: list[str] | None = None,
+    recordkeeping: bool = False,
 ) -> str:
     county_context = county_mitigation_context(county or "") if county else None
     products = active_esa_products_for_crop(crop_or_site)
+    selected_practice_ids = selected_practice_ids or []
+    summary = (
+        calculate_mitigation_summary(
+            county=county,
+            product_name=product_name,
+            hsg=hsg,
+            selected_practice_ids=selected_practice_ids,
+            recordkeeping=recordkeeping,
+        )
+        if product_name
+        else None
+    )
     location = (
         f"{lat:.6f}, {lon:.6f}" if lat is not None and lon is not None else "Not selected"
     )
@@ -136,6 +246,26 @@ def build_mitigation_report(
             )
     else:
         lines.append("- No product example matched the entered crop/site in this integrated calculator snapshot.")
+
+    if summary:
+        lines.extend(
+            [
+                "",
+                "## Mitigation Point Calculation",
+                f"- Selected product: {product_name}",
+                f"- Hydrologic soil group: {hsg}",
+                f"- Required runoff points: {summary['required_points'] if summary['required_points'] is not None else 'Needs HSG/product verification'}",
+                f"- County relief points: {summary['county_relief_points']}",
+                f"- Selected practice points: {summary['practice_points']}",
+                f"- Recordkeeping points: {summary['recordkeeping_points']}",
+                f"- Total planning points: {summary['total_points']}",
+                f"- Planning status: {'Meets entered point target' if summary['meets_points'] else 'Needs review or more mitigation'}",
+            ]
+        )
+        if summary["selected_practices"]:
+            lines.append("- Selected practices:")
+            for practice in summary["selected_practices"]:
+                lines.append(f"  - {practice['name']} ({practice['points']} point(s))")
 
     lines.extend(
         [

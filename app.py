@@ -25,8 +25,10 @@ from src.disclaimers import (
     get_result_disclaimer,
 )
 from src.esa_context import (
+    MITIGATION_PRACTICES,
     active_esa_products_for_crop,
     build_mitigation_report,
+    calculate_mitigation_summary,
     county_mitigation_context,
 )
 from src.extension_contacts import contacts_for_crop_or_site, load_contacts
@@ -427,39 +429,41 @@ def render_result_panel(lat: float | None, lon: float | None, pulas) -> None:
 
 def render_contacts(crop_or_site: str) -> None:
     st.markdown('<div class="panel"><div class="panel-title">Local Extension Support</div>', unsafe_allow_html=True)
-    st.caption("Contacts are filtered by the crop or managed site entered in the location panel.")
-    matching_contacts = contacts_for_crop_or_site(crop_or_site) if crop_or_site else load_contacts()
-    for contact in matching_contacts[:5]:
-        st.markdown(
-            f"""
-            <div class="contact-card">
-              <div class="contact-name">{contact.get('name', '')}</div>
-              <div class="contact-meta">{contact.get('role', '')}</div>
-              <div class="contact-meta">{contact.get('specialty', '')}</div>
-              <div class="contact-meta">{contact.get('phone', '')}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        if contact.get("source_url"):
-            st.link_button(f"Official profile: {contact.get('name', 'contact')}", contact["source_url"])
-    st.caption("Email addresses are shown through official ACES profile pages when ACES exposes them.")
-    st.link_button("Find your county Extension office", ACES_COUNTIES_URL)
+    st.caption("Open only when you need specialist names and official ACES profile links.")
+    with st.expander("Show Extension specialists"):
+        matching_contacts = contacts_for_crop_or_site(crop_or_site) if crop_or_site else load_contacts()
+        for contact in matching_contacts[:5]:
+            st.markdown(
+                f"""
+                <div class="contact-card">
+                  <div class="contact-name">{contact.get('name', '')}</div>
+                  <div class="contact-meta">{contact.get('role', '')}</div>
+                  <div class="contact-meta">{contact.get('specialty', '')}</div>
+                  <div class="contact-meta">{contact.get('phone', '')}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if contact.get("source_url"):
+                st.link_button(f"Official profile: {contact.get('name', 'contact')}", contact["source_url"])
+        st.caption("Email addresses are shown through official ACES profile pages when ACES exposes them.")
     st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_county_support(county: str | None) -> None:
     st.markdown('<div class="panel"><div class="panel-title">County Extension Office</div>', unsafe_allow_html=True)
-    st.caption("Location-to-county lookup uses the U.S. Census geocoder and sends only the selected coordinates.")
-    if county:
-        links = county_contact_links(county)
-        st.write(f"**Responsible county office:** {links['county']} County")
-        county_cols = st.columns(2)
-        county_cols[0].link_button("County office page", links["office_url"])
-        county_cols[1].link_button("Contact county office", links["contact_url"])
-    else:
-        st.write("Choose a location to identify the nearest county Extension office.")
-        st.link_button("Find your county office", ACES_COUNTIES_URL)
+    st.caption("Open if you need the responsible local county office.")
+    with st.expander("Show county office"):
+        st.caption("Location-to-county lookup uses the U.S. Census geocoder and sends only the selected coordinates.")
+        if county:
+            links = county_contact_links(county)
+            st.write(f"**Responsible county office:** {links['county']} County")
+            county_cols = st.columns(2)
+            county_cols[0].link_button("County office page", links["office_url"])
+            county_cols[1].link_button("Contact county office", links["contact_url"])
+        else:
+            st.write("Choose a location to identify the nearest county Extension office.")
+            st.link_button("Find your county office", ACES_COUNTIES_URL)
     st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -486,8 +490,8 @@ def render_esa_context(
     lat: float | None,
     lon: float | None,
 ) -> None:
-    st.markdown('<div class="panel"><div class="panel-title">ESA Mitigation Planning Context</div>', unsafe_allow_html=True)
-    st.caption("Integrated from the Alabama ESA calculator as planning context only. Always follow the current product label, BLT bulletin, and EPA PALM.")
+    st.markdown('<div class="panel"><div class="panel-title">ESA Mitigation Point Calculator</div>', unsafe_allow_html=True)
+    st.caption("Integrated here from the Alabama ESA calculator. Planning context only; always follow the current label, BLT bulletin, and EPA PALM.")
     if county:
         context = county_mitigation_context(county)
         if context:
@@ -499,26 +503,86 @@ def render_esa_context(
         st.write("Choose a location to show county runoff-vulnerability context from the Alabama ESA calculator.")
 
     products = active_esa_products_for_crop(crop_or_site)
-    if products:
-        st.write("**Active ESA-labeled product examples for the selected crop/site:**")
-        for product in products[:3]:
-            st.write(
-                f"- {product['name']} ({product['active_ingredient']}, Group {product['group']}, "
-                f"EPA Reg. {product['epa_reg']}): runoff points {product['runoff_points']}; "
-                f"downwind buffer {product['downwind_buffer_ft']} ft."
-            )
-    elif crop_or_site:
+    product_name = None
+    hsg = "Unknown"
+    selected_ids = []
+    recordkeeping = False
+    if not crop_or_site:
+        st.info("Enter a crop/site above if you want the mitigation point calculator.")
+    elif not products:
         st.write("No active ESA-labeled product example in the integrated calculator matched this crop/site.")
     else:
-        st.write("Enter a crop/site to show product examples from the integrated calculator.")
-    report = build_mitigation_report(lat, lon, county, crop_or_site)
+        product_name = st.selectbox(
+            "ESA-labeled product",
+            [product["name"] for product in products],
+        )
+        selected_product = next(product for product in products if product["name"] == product_name)
+        st.write(
+            f"**{selected_product['name']}** | AI: {selected_product['active_ingredient']} | "
+            f"Group {selected_product['group']} | EPA Reg. {selected_product['epa_reg']}"
+        )
+        st.caption(
+            f"Runoff target: {selected_product['runoff_points']} | "
+            f"Downwind buffer: {selected_product['downwind_buffer_ft']} ft. {selected_product['note']}"
+        )
+        hsg = st.selectbox(
+            "Hydrologic soil group",
+            ["Unknown", "A", "B", "C", "D", "A/D", "B/D", "C/D"],
+            help="Required for Enlist products because the runoff point target changes by HSG.",
+        )
+        practice_labels = {
+            practice["id"]: f"{practice['name']} (+{practice['points']})"
+            for practice in MITIGATION_PRACTICES
+            if practice["id"] != "recordkeeping"
+        }
+        selected_ids = st.multiselect(
+            "Mitigation practices planned",
+            options=list(practice_labels),
+            format_func=lambda practice_id: practice_labels[practice_id],
+        )
+        recordkeeping = st.checkbox(
+            "Maintain mitigation records with spray records (+1 point)",
+            value=True,
+        )
+        summary = calculate_mitigation_summary(
+            county=county,
+            product_name=product_name,
+            hsg=hsg,
+            selected_practice_ids=selected_ids,
+            recordkeeping=recordkeeping,
+        )
+        metric_cols = st.columns(3)
+        metric_cols[0].metric(
+            "Required",
+            "Needs HSG" if summary["required_points"] is None else summary["required_points"],
+        )
+        metric_cols[1].metric("Entered points", summary["total_points"])
+        metric_cols[2].metric("County relief", summary["county_relief_points"])
+        if summary["needs_hsg"]:
+            st.warning("Choose a hydrologic soil group to calculate Enlist runoff points.")
+        elif summary["meets_points"]:
+            st.success("The entered planning practices meet or exceed the selected product's point target.")
+        else:
+            st.warning("The entered planning practices do not meet the selected product's point target yet.")
+
+    report = build_mitigation_report(
+        lat,
+        lon,
+        county,
+        crop_or_site,
+        product_name=product_name,
+        hsg=hsg,
+        selected_practice_ids=selected_ids,
+        recordkeeping=recordkeeping,
+    )
     st.download_button(
         "Download mitigation planning report",
         data=report,
         file_name="esa-mitigation-planning-report.md",
         mime="text/markdown",
     )
-    st.link_button("Open Alabama ESA calculator", "https://gzc0063-hub.github.io/alabama-esa-calculator")
+    with st.expander("Show source calculator link"):
+        st.link_button("Open Alabama ESA calculator", "https://gzc0063-hub.github.io/alabama-esa-calculator")
     st.markdown("</div>", unsafe_allow_html=True)
 
 

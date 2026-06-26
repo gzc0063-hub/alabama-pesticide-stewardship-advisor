@@ -1,6 +1,7 @@
 from src.esa_context import (
     active_esa_products_for_crop,
     build_mitigation_report,
+    calculate_mitigation_summary,
     county_mitigation_context,
     enlist_runoff_points_for_hsg,
 )
@@ -48,3 +49,33 @@ def test_build_mitigation_report_includes_recordkeeping_and_disclaimer():
     assert "Liberty ULTRA" in report
     assert "recordkeeping" in report.lower()
     assert "planning" in report.lower()
+
+
+def test_calculate_mitigation_summary_counts_county_practices_and_recordkeeping():
+    summary = calculate_mitigation_summary(
+        county="Lee",
+        product_name="Liberty ULTRA",
+        hsg="A",
+        selected_practice_ids=["no-till", "vegetated-filter-strip"],
+        recordkeeping=True,
+    )
+
+    assert summary["required_points"] == 3
+    assert summary["county_relief_points"] == 2
+    assert summary["practice_points"] == 3
+    assert summary["recordkeeping_points"] == 1
+    assert summary["total_points"] == 6
+    assert summary["meets_points"] is True
+
+
+def test_calculate_mitigation_summary_needs_hsg_for_enlist():
+    summary = calculate_mitigation_summary(
+        county="Baldwin",
+        product_name="Enlist One",
+        hsg="Unknown",
+        selected_practice_ids=[],
+        recordkeeping=False,
+    )
+
+    assert summary["required_points"] is None
+    assert summary["needs_hsg"] is True
