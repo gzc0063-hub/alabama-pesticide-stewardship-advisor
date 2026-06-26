@@ -520,6 +520,10 @@ def render_resistance_context(crop_or_site: str, lat: float | None, lon: float |
     if lat is not None and lon is not None:
         st.write(f"Location checked for context: `{lat:.5f}, {lon:.5f}`")
     st.info(nearby_resistance_note())
+    st.caption(
+        "This section can be improved as finer-scale Alabama resistance observations "
+        "and Auburn/ACES weed science guidance become available."
+    )
     for line in summarize_resistance_records(matching_rows, limit=5):
         st.write(f"- {line}")
     if crop_or_site and matching_rows == rows:
