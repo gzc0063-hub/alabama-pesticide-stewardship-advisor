@@ -347,7 +347,7 @@ def render_report_cta() -> None:
         """,
         unsafe_allow_html=True,
     )
-    st.button("Open suspected resistance report", on_click=set_view, args=("report",))
+    st.button("Report suspected resistance", on_click=set_view, args=("report",))
 
 
 def render_map_context() -> None:
