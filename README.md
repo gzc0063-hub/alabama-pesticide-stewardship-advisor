@@ -34,3 +34,7 @@ python -m venv venv
 .\venv\Scripts\pip install -r requirements.txt
 .\venv\Scripts\streamlit run app.py
 ```
+
+## Hosting
+
+GitHub Pages can host the static project page in `docs/index.html` from the `docs/` folder. The interactive Streamlit app requires a Python-capable host such as Streamlit Community Cloud; after deployment, update the `Open App` link in `docs/index.html` to the live Streamlit URL.

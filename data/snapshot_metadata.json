@@ -1,10 +1,13 @@
 {
-  "pula_date": "not-yet-fetched",
+  "pula_date": "2026-06-25",
   "heap_date": "not-yet-fetched",
   "source_urls": {
     "blt": "https://www.epa.gov/endangered-species/bulletins-live-two-view-bulletins",
+    "pula_map_service": "https://blt.epa.gov/arcgis/rest/services/BLT/PesticideUsageLimitationAreas/MapServer",
     "palm": "https://www.epa.gov/pesticides/mitigation-menu",
-    "heap": "https://www.weedscience.org/Summary/Country.aspx?CountryID=45"
+    "heap": "https://www.weedscience.org/Summary/Country.aspx?CountryID=45",
+    "aces_counties": "https://www.aces.edu/counties/",
+    "aces_agronomic_crops_directory": "https://ssl.acesag.auburn.edu/directory-new/programAgentSearch.php?program=1"
   },
-  "notes": "Initial metadata placeholder. Replace dates after verified data snapshots are fetched."
+  "notes": "Alabama PULA snapshot fetched from the EPA BLT ArcGIS MapServer by Alabama bounding envelope. Resistance snapshot is not yet fetched."
 }
