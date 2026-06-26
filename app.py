@@ -60,6 +60,20 @@ ACES_COUNTIES_URL = "https://www.aces.edu/counties/"
 ACES_DIRECTORY_URL = "https://ssl.acesag.auburn.edu/directory-new/programAgentSearch.php?program=1"
 ALABAMA_MAP_BOUNDS = [[30.1, -88.55], [35.05, -84.85]]
 ALABAMA_MAP_CENTER = [32.8067, -86.7911]
+CROP_SITE_OPTIONS = [
+    "",
+    "Cotton",
+    "Soybean",
+    "Corn",
+    "Peanut",
+    "Pasture",
+    "Forage",
+    "Turf",
+    "Right-of-way",
+    "Aquatic site",
+    "Forestry",
+    "Other",
+]
 
 
 def apply_theme() -> None:
@@ -823,12 +837,20 @@ def render_main_app() -> None:
             """,
             unsafe_allow_html=True,
         )
-        crop_or_site = st.text_input(
+        crop_choice = st.selectbox(
             "Crop or managed site for this decision",
-            placeholder="Example: soybean, cotton, pasture, right-of-way",
+            CROP_SITE_OPTIONS,
+            format_func=lambda value: "Select crop or site" if value == "" else value,
             key="crop_or_site",
         )
-        st.caption("Examples: soybean, cotton, corn, pasture, turf, right-of-way.")
+        crop_or_site = crop_choice.lower()
+        if crop_choice == "Other":
+            crop_or_site = st.text_input(
+                "Enter other crop or managed site",
+                placeholder="Example: roadside, nursery, specialty crop",
+                key="crop_or_site_other",
+            )
+        st.caption("This selection filters resistance context, ESA product examples, and Extension contacts.")
         st.markdown("</div>", unsafe_allow_html=True)
 
         render_result_panel(selected_lat, selected_lon, pulas)
@@ -838,8 +860,7 @@ def render_main_app() -> None:
         render_contacts(crop_or_site)
 
     with left:
-        crop_or_site_for_context = st.session_state.get("crop_or_site", "")
-        render_resistance_context(crop_or_site_for_context, selected_lat, selected_lon)
+        render_resistance_context(crop_or_site, selected_lat, selected_lon)
         render_report_cta()
 
 
