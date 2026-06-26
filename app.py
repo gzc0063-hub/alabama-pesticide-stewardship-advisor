@@ -1,4 +1,5 @@
 from pathlib import Path
+import base64
 import json
 
 import folium
@@ -51,6 +52,9 @@ st.set_page_config(page_title="PULA Awareness Tool", layout="wide")
 
 PULA_FULL_PATH = Path("data/pula_alabama.geojson")
 PULA_DISPLAY_PATH = Path("data/pula_alabama_display.geojson")
+ASSETS_DIR = Path("assets")
+AU_LOGO_PATH = ASSETS_DIR / "auburn-logo.png"
+ACES_LOGO_PATH = ASSETS_DIR / "aces-logo.png"
 ACES_COUNTIES_URL = "https://www.aces.edu/counties/"
 ACES_DIRECTORY_URL = "https://ssl.acesag.auburn.edu/directory-new/programAgentSearch.php?program=1"
 ALABAMA_MAP_BOUNDS = [[30.1, -88.55], [35.05, -84.85]]
@@ -110,19 +114,33 @@ def apply_theme() -> None:
         }
         .au-lockup {
           display:flex;
-          gap: 10px;
+          flex-direction: column;
+          gap: 9px;
           align-items:center;
           min-width: 250px;
           justify-content:flex-end;
         }
-        .au-mark {
-          border: 1px solid rgba(255,255,255,.3);
+        .logo-card {
           border-radius: 8px;
-          padding: 10px 12px;
-          color: white;
-          font-weight: 760;
-          line-height: 1;
-          background: rgba(255,255,255,.08);
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          width: 210px;
+          min-height: 48px;
+          padding: 9px 12px;
+        }
+        .logo-card.auburn {
+          border: 1px solid rgba(255,255,255,.25);
+          background: rgba(255,255,255,.05);
+        }
+        .logo-card.aces {
+          border: 1px solid rgba(255,255,255,.58);
+          background: rgba(255,255,255,.96);
+        }
+        .logo-card img {
+          max-width: 100%;
+          max-height: 44px;
+          display:block;
         }
         .au-accent {
           width: 46px;
@@ -278,7 +296,26 @@ def set_view(view: str) -> None:
     st.session_state["view"] = view
 
 
+@st.cache_data(show_spinner=False)
+def image_data_uri(path: str) -> str:
+    file_path = Path(path)
+    encoded = base64.b64encode(file_path.read_bytes()).decode("ascii")
+    return f"data:image/png;base64,{encoded}"
+
+
 def render_header(metadata: dict, summary: dict) -> None:
+    auburn_logo = image_data_uri(str(AU_LOGO_PATH)) if AU_LOGO_PATH.exists() else ""
+    aces_logo = image_data_uri(str(ACES_LOGO_PATH)) if ACES_LOGO_PATH.exists() else ""
+    auburn_markup = (
+        f'<img src="{auburn_logo}" alt="Auburn University logo">'
+        if auburn_logo
+        else "Auburn"
+    )
+    aces_markup = (
+        f'<img src="{aces_logo}" alt="Alabama Cooperative Extension System logo">'
+        if aces_logo
+        else "ACES"
+    )
     st.markdown(
         f"""
         <div class="au-hero">
@@ -292,8 +329,8 @@ def render_header(metadata: dict, summary: dict) -> None:
               <div class="au-accent"></div>
             </div>
             <div class="au-lockup">
-              <div class="au-mark">AU</div>
-              <div class="au-mark">ACES</div>
+              <div class="logo-card auburn">{auburn_markup}</div>
+              <div class="logo-card aces">{aces_markup}</div>
             </div>
           </div>
         </div>
