@@ -211,7 +211,7 @@ def apply_theme() -> None:
           display:grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 10px;
-          margin-top: 12px;
+          margin: 0 0 12px;
         }
         .info-cell {
           border: 1px solid var(--line);
@@ -777,6 +777,7 @@ def render_main_app() -> None:
 
     with left:
         st.markdown('<div class="panel"><div class="panel-title">Alabama Cached PULA Map</div>', unsafe_allow_html=True)
+        render_map_context()
         m = folium.Map(
             location=ALABAMA_MAP_CENTER,
             zoom_start=7,
@@ -803,7 +804,6 @@ def render_main_app() -> None:
             key="alabama_pula_map",
         )
         st.caption("Map is bounded to Alabama for faster navigation. Orange regions are cached EPA PULA polygons intersecting Alabama; always verify official requirements in BLT.")
-        render_map_context()
         st.markdown("</div>", unsafe_allow_html=True)
 
     clicked = map_state.get("last_clicked") if map_state else None
