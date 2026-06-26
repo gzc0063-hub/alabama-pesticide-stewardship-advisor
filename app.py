@@ -45,6 +45,7 @@ from src.resistance_context import (
     resistance_context_for_crop,
     summarize_resistance_records,
 )
+from src.soil_lookup import lookup_hydrologic_soil_group
 from src.spatial import point_in_polygons
 
 
@@ -273,6 +274,11 @@ def load_pulas(path: str):
 @st.cache_data(show_spinner=False)
 def load_resistance_rows() -> list[dict]:
     return load_alabama_resistance_context()
+
+
+@st.cache_data(show_spinner=False)
+def cached_soil_lookup(lat: float, lon: float) -> dict:
+    return lookup_hydrologic_soil_group(lat, lon)
 
 
 def smtp_settings_from_secrets() -> dict | None:
@@ -560,6 +566,17 @@ def render_esa_context(
     else:
         st.write("Choose a location to show county runoff-vulnerability context from the Alabama ESA calculator.")
 
+    soil_result = None
+    auto_hsg = "Unknown"
+    if lat is not None and lon is not None:
+        with st.spinner("Checking USDA soil survey for hydrologic soil group..."):
+            soil_result = cached_soil_lookup(round(float(lat), 6), round(float(lon), 6))
+        if soil_result.get("hsg"):
+            auto_hsg = soil_result["hsg"]
+            st.success(f"USDA Soil Data Access HSG lookup: {auto_hsg}")
+        elif soil_result.get("error"):
+            st.caption(f"USDA HSG lookup: {soil_result['error']}")
+
     products = active_esa_products_for_crop(crop_or_site)
     product_name = None
     hsg = "Unknown"
@@ -583,11 +600,16 @@ def render_esa_context(
             f"Runoff target: {selected_product['runoff_points']} | "
             f"Downwind buffer: {selected_product['downwind_buffer_ft']} ft. {selected_product['note']}"
         )
+        hsg_options = ["Unknown", "A", "B", "C", "D", "A/D", "B/D", "C/D"]
+        hsg_index = hsg_options.index(auto_hsg) if auto_hsg in hsg_options else 0
         hsg = st.selectbox(
             "Hydrologic soil group",
-            ["Unknown", "A", "B", "C", "D", "A/D", "B/D", "C/D"],
+            hsg_options,
+            index=hsg_index,
             help="Required for Enlist products because the runoff point target changes by HSG.",
         )
+        if auto_hsg != "Unknown":
+            st.caption("Prefilled from USDA Soil Data Access using the selected coordinates; adjust if you have better field-specific soil information.")
         practice_labels = {
             practice["id"]: f"{practice['name']} (+{practice['points']})"
             for practice in MITIGATION_PRACTICES
