@@ -86,3 +86,67 @@ def enlist_runoff_points_for_hsg(hsg: str) -> int | None:
     if value in {"C", "D", "C/D"}:
         return 6
     return None
+
+
+def build_mitigation_report(
+    lat: float | None,
+    lon: float | None,
+    county: str | None,
+    crop_or_site: str,
+) -> str:
+    county_context = county_mitigation_context(county or "") if county else None
+    products = active_esa_products_for_crop(crop_or_site)
+    location = (
+        f"{lat:.6f}, {lon:.6f}" if lat is not None and lon is not None else "Not selected"
+    )
+    county_line = (
+        f"{county_context['county']} County"
+        if county_context
+        else (f"{normalize_county_name(county)} County" if county else "Not determined")
+    )
+    lines = [
+        "# ESA Mitigation Planning Report",
+        "",
+        "This report is for planning and recordkeeping support only. It does not replace the pesticide label, EPA Bulletins Live! Two, EPA PALM, state or local restrictions, or Extension guidance.",
+        "",
+        "## Field Context",
+        f"- Location checked: {location}",
+        f"- County: {county_line}",
+        f"- Crop or managed site: {crop_or_site or 'Not entered'}",
+    ]
+    if county_context:
+        lines.extend(
+            [
+                f"- County runoff vulnerability: {county_context['runoff_vulnerability']}",
+                f"- County relief points shown by calculator data: {county_context['county_relief_points']}",
+            ]
+        )
+    else:
+        lines.append("- County runoff vulnerability: not available until a county is determined")
+
+    lines.extend(["", "## Active ESA-Labeled Product Examples"])
+    if products:
+        for product in products:
+            lines.append(
+                "- "
+                f"{product['name']} | AI: {product['active_ingredient']} | "
+                f"Group {product['group']} | EPA Reg. {product['epa_reg']} | "
+                f"Runoff points: {product['runoff_points']} | "
+                f"Downwind buffer: {product['downwind_buffer_ft']} ft"
+            )
+    else:
+        lines.append("- No product example matched the entered crop/site in this integrated calculator snapshot.")
+
+    lines.extend(
+        [
+            "",
+            "## Recordkeeping Note",
+            "The source Alabama ESA calculator treated filing a mitigation report with spray records as recordkeeping documentation for the EPA mitigation menu recordkeeping practice. Confirm current EPA PALM/menu language and the specific product label before relying on any mitigation point.",
+            "",
+            "## Required Follow-Up",
+            "- Verify the exact product, application month, and location in EPA Bulletins Live! Two.",
+            "- Verify the current pesticide label and any supplemental labeling.",
+            "- Contact the appropriate ACES county office or Auburn/ACES Extension specialist for local interpretation.",
+        ]
+    )
+    return "\n".join(lines)

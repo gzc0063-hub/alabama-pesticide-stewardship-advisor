@@ -24,7 +24,11 @@ from src.disclaimers import (
     get_resistance_disclaimer,
     get_result_disclaimer,
 )
-from src.esa_context import active_esa_products_for_crop, county_mitigation_context
+from src.esa_context import (
+    active_esa_products_for_crop,
+    build_mitigation_report,
+    county_mitigation_context,
+)
 from src.extension_contacts import contacts_for_crop_or_site, load_contacts
 from src.reports import (
     build_email_message,
@@ -353,15 +357,13 @@ def render_map_context() -> None:
           <div class="info-cell">
             <div class="info-kicker">PULA</div>
             <div class="soft-note">
-              A Pesticide Use Limitation Area is an EPA geographic area where a pesticide bulletin may add use limits
-              to protect listed species or designated critical habitat.
+              A Pesticide Use Limitation Area is an EPA geography where BLT may add pesticide use limits for listed species or critical habitat.
             </div>
           </div>
           <div class="info-cell">
             <div class="info-kicker">Why Alabama</div>
             <div class="soft-note">
-              Alabama has diverse row crops, forages, forests, aquatic systems, and protected-species habitats, so a
-              field check in Bulletins Live! Two is important before product decisions.
+              Alabama's crops, aquatic systems, and protected-species habitats make field-level bulletin checks important before application.
             </div>
           </div>
           <div class="info-cell">
@@ -382,6 +384,15 @@ def location_result(lat: float, lon: float, pulas) -> tuple[bool, dict | None]:
         return False, None
     intersects = not point_in_polygons(lat, lon, pulas).empty
     return intersects, nearest_pula_summary(lat, lon, pulas)
+
+
+def selected_county(lat: float | None, lon: float | None) -> str | None:
+    if lat is None or lon is None:
+        return None
+    try:
+        return county_from_coordinates(lat, lon)
+    except Exception:
+        return None
 
 
 def render_result_panel(lat: float | None, lon: float | None, pulas) -> None:
@@ -414,13 +425,9 @@ def render_result_panel(lat: float | None, lon: float | None, pulas) -> None:
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-def render_contacts() -> str:
+def render_contacts(crop_or_site: str) -> None:
     st.markdown('<div class="panel"><div class="panel-title">Local Extension Support</div>', unsafe_allow_html=True)
-    st.caption("Enter the crop or managed site so the app can prioritize the most relevant Auburn/ACES specialist contacts and related resistance context.")
-    crop_or_site = st.text_input(
-        "Crop or managed site",
-        placeholder="Example: soybean, cotton, pasture, right-of-way",
-    )
+    st.caption("Contacts are filtered by the crop or managed site entered in the location panel.")
     matching_contacts = contacts_for_crop_or_site(crop_or_site) if crop_or_site else load_contacts()
     for contact in matching_contacts[:5]:
         st.markdown(
@@ -439,18 +446,11 @@ def render_contacts() -> str:
     st.caption("Email addresses are shown through official ACES profile pages when ACES exposes them.")
     st.link_button("Find your county Extension office", ACES_COUNTIES_URL)
     st.markdown("</div>", unsafe_allow_html=True)
-    return crop_or_site
 
 
-def render_county_support(lat: float | None, lon: float | None) -> str | None:
+def render_county_support(county: str | None) -> None:
     st.markdown('<div class="panel"><div class="panel-title">County Extension Office</div>', unsafe_allow_html=True)
     st.caption("Location-to-county lookup uses the U.S. Census geocoder and sends only the selected coordinates.")
-    county = None
-    if lat is not None and lon is not None:
-        try:
-            county = county_from_coordinates(lat, lon)
-        except Exception:
-            county = None
     if county:
         links = county_contact_links(county)
         st.write(f"**Responsible county office:** {links['county']} County")
@@ -461,15 +461,16 @@ def render_county_support(lat: float | None, lon: float | None) -> str | None:
         st.write("Choose a location to identify the nearest county Extension office.")
         st.link_button("Find your county office", ACES_COUNTIES_URL)
     st.markdown("</div>", unsafe_allow_html=True)
-    return county
 
 
-def render_resistance_context(crop_or_site: str) -> None:
+def render_resistance_context(crop_or_site: str, lat: float | None, lon: float | None) -> None:
     rows = load_resistance_rows()
     matching_rows = resistance_context_for_crop(crop_or_site, rows)
-    st.markdown('<div class="panel"><div class="panel-title">Resistance Context Near This Decision</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel"><div class="panel-title">Nearby Herbicide Resistance Context</div>', unsafe_allow_html=True)
     st.caption(heap_attribution())
     st.write(get_resistance_disclaimer())
+    if lat is not None and lon is not None:
+        st.write(f"Location checked for context: `{lat:.5f}, {lon:.5f}`")
     st.info(nearby_resistance_note())
     for line in summarize_resistance_records(matching_rows, limit=5):
         st.write(f"- {line}")
@@ -479,7 +480,12 @@ def render_resistance_context(crop_or_site: str) -> None:
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-def render_esa_context(crop_or_site: str, county: str | None) -> None:
+def render_esa_context(
+    crop_or_site: str,
+    county: str | None,
+    lat: float | None,
+    lon: float | None,
+) -> None:
     st.markdown('<div class="panel"><div class="panel-title">ESA Mitigation Planning Context</div>', unsafe_allow_html=True)
     st.caption("Integrated from the Alabama ESA calculator as planning context only. Always follow the current product label, BLT bulletin, and EPA PALM.")
     if county:
@@ -505,6 +511,13 @@ def render_esa_context(crop_or_site: str, county: str | None) -> None:
         st.write("No active ESA-labeled product example in the integrated calculator matched this crop/site.")
     else:
         st.write("Enter a crop/site to show product examples from the integrated calculator.")
+    report = build_mitigation_report(lat, lon, county, crop_or_site)
+    st.download_button(
+        "Download mitigation planning report",
+        data=report,
+        file_name="esa-mitigation-planning-report.md",
+        mime="text/markdown",
+    )
     st.link_button("Open Alabama ESA calculator", "https://gzc0063-hub.github.io/alabama-esa-calculator")
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -606,7 +619,7 @@ def render_main_app() -> None:
         m = folium.Map(location=[32.8067, -86.7911], zoom_start=7, tiles="CartoDB positron")
         add_pula_layer(m, display_geojson)
         folium.LayerControl(collapsed=True).add_to(m)
-        map_state = st_folium(m, height=520, use_container_width=True)
+        map_state = st_folium(m, height=500, use_container_width=True)
         st.caption("Orange regions are cached EPA PULA polygons intersecting Alabama. Always verify official requirements in BLT.")
         render_map_context()
         st.markdown("</div>", unsafe_allow_html=True)
@@ -616,8 +629,6 @@ def render_main_app() -> None:
     selected_lon = clicked.get("lng") if clicked else None
 
     with right:
-        render_report_cta()
-
         st.markdown('<div class="panel"><div class="panel-title">Check a Location</div>', unsafe_allow_html=True)
         st.caption("Allow browser location, click the map, or enter coordinates manually.")
         if st.button("Use my browser location"):
@@ -632,13 +643,24 @@ def render_main_app() -> None:
         if st.button("Use entered coordinates"):
             selected_lat = manual_lat
             selected_lon = manual_lon
+        crop_or_site = st.text_input(
+            "Crop or managed site",
+            placeholder="Example: soybean, cotton, pasture, right-of-way",
+            key="crop_or_site",
+        )
+        st.caption("Crop/site filters resistance context, Extension contacts, and ESA product examples.")
         st.markdown("</div>", unsafe_allow_html=True)
 
         render_result_panel(selected_lat, selected_lon, pulas)
-        county = render_county_support(selected_lat, selected_lon)
-        crop_or_site = render_contacts()
-        render_resistance_context(crop_or_site)
-        render_esa_context(crop_or_site, county)
+        county = selected_county(selected_lat, selected_lon)
+        render_esa_context(crop_or_site, county, selected_lat, selected_lon)
+        render_county_support(county)
+        render_contacts(crop_or_site)
+
+    with left:
+        crop_or_site_for_context = st.session_state.get("crop_or_site", "")
+        render_resistance_context(crop_or_site_for_context, selected_lat, selected_lon)
+        render_report_cta()
 
 
 apply_theme()

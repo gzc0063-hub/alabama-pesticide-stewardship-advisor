@@ -1,5 +1,6 @@
 from src.esa_context import (
     active_esa_products_for_crop,
+    build_mitigation_report,
     county_mitigation_context,
     enlist_runoff_points_for_hsg,
 )
@@ -33,3 +34,17 @@ def test_active_esa_products_for_crop_matches_row_crops():
 def test_enlist_runoff_points_for_hsg():
     assert enlist_runoff_points_for_hsg("A") == 4
     assert enlist_runoff_points_for_hsg("D") == 6
+
+
+def test_build_mitigation_report_includes_recordkeeping_and_disclaimer():
+    report = build_mitigation_report(
+        lat=32.6,
+        lon=-85.5,
+        county="Lee",
+        crop_or_site="cotton",
+    )
+
+    assert "Lee County" in report
+    assert "Liberty ULTRA" in report
+    assert "recordkeeping" in report.lower()
+    assert "planning" in report.lower()
