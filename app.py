@@ -27,11 +27,12 @@ from src.disclaimers import (
     get_result_disclaimer,
 )
 from src.esa_context import (
+    LABEL_COVERAGE_NOTE,
     MITIGATION_PRACTICES,
-    active_esa_products_for_crop,
     build_mitigation_report,
     calculate_mitigation_summary,
     county_mitigation_context,
+    herbicide_products_for_crop,
 )
 from src.extension_contacts import contacts_for_crop_or_site, load_contacts
 from src.pdf_report import build_text_pdf
@@ -693,7 +694,7 @@ def render_esa_context(
         elif soil_result.get("error"):
             st.caption(f"USDA HSG lookup: {soil_result['error']}")
 
-    products = active_esa_products_for_crop(crop_or_site)
+    products = herbicide_products_for_crop(crop_or_site)
     product_name = None
     hsg = "Unknown"
     selected_ids = []
@@ -701,21 +702,39 @@ def render_esa_context(
     if not crop_or_site:
         st.info("Enter a crop/site above if you want the mitigation point calculator.")
     elif not products:
-        st.write("No active ESA-labeled product example in the integrated calculator matched this crop/site.")
+        st.write("No herbicide product example in the integrated calculator matched this crop/site.")
     else:
+        st.info(LABEL_COVERAGE_NOTE)
         product_name = st.selectbox(
-            "ESA-labeled product",
+            "Herbicide product for ESA planning",
             [product["name"] for product in products],
+            format_func=lambda name: (
+                f"{name} - active point calculator"
+                if next(
+                    product for product in products if product["name"] == name
+                )["esa_status"]
+                == "active"
+                else f"{name} - verify label/BLT"
+            ),
         )
         selected_product = next(product for product in products if product["name"] == product_name)
+        is_active_esa = selected_product.get("esa_status") == "active"
         st.write(
             f"**{selected_product['name']}** | AI: {selected_product['active_ingredient']} | "
             f"Group {selected_product['group']} | EPA Reg. {selected_product['epa_reg']}"
         )
-        st.caption(
-            f"Runoff target: {selected_product['runoff_points']} | "
-            f"Downwind buffer: {selected_product['downwind_buffer_ft']} ft. {selected_product['note']}"
-        )
+        if is_active_esa:
+            st.caption(
+                f"Runoff target: {selected_product['runoff_points']} | "
+                f"Downwind buffer: {selected_product['downwind_buffer_ft']} ft. {selected_product['note']}"
+            )
+        else:
+            st.warning(
+                "This product is included for planning awareness, but this app does not have a verified active "
+                "Herbicide Strategy point target for it. Check the current product label, EPA BLT, and EPA PALM "
+                "before deciding whether runoff points, buffers, or other restrictions apply."
+            )
+            st.caption(selected_product["note"])
         hsg_options = ["Unknown", "A", "B", "C", "D", "A/D", "B/D", "C/D"]
         hsg_index = hsg_options.index(auto_hsg) if auto_hsg in hsg_options else 0
         hsg = st.selectbox(
@@ -747,19 +766,28 @@ def render_esa_context(
             selected_practice_ids=selected_ids,
             recordkeeping=recordkeeping,
         )
-        metric_cols = st.columns(3)
-        metric_cols[0].metric(
-            "Required",
-            "Needs HSG" if summary["required_points"] is None else summary["required_points"],
-        )
-        metric_cols[1].metric("Entered points", summary["total_points"])
-        metric_cols[2].metric("County relief", summary["county_relief_points"])
-        if summary["needs_hsg"]:
-            st.warning("Choose a hydrologic soil group to calculate Enlist runoff points.")
-        elif summary["meets_points"]:
-            st.success("The entered planning practices meet or exceed the selected product's point target.")
+        if summary["needs_label_verification"]:
+            metric_cols = st.columns(2)
+            metric_cols[0].metric("Known point target", "Verify")
+            metric_cols[1].metric("Planning points selected", summary["total_points"])
+            st.info(
+                "Use the selected practices as a worksheet only. The final decision depends on the exact label, "
+                "EPA Bulletins Live! Two, and EPA PALM for the product and application site."
+            )
         else:
-            st.warning("The entered planning practices do not meet the selected product's point target yet.")
+            metric_cols = st.columns(3)
+            metric_cols[0].metric(
+                "Required",
+                "Needs HSG" if summary["required_points"] is None else summary["required_points"],
+            )
+            metric_cols[1].metric("Entered points", summary["total_points"])
+            metric_cols[2].metric("County relief", summary["county_relief_points"])
+            if summary["needs_hsg"]:
+                st.warning("Choose a hydrologic soil group to calculate Enlist runoff points.")
+            elif summary["meets_points"]:
+                st.success("The entered planning practices meet or exceed the selected product's point target.")
+            else:
+                st.warning("The entered planning practices do not meet the selected product's point target yet.")
 
     if product_name:
         report = build_mitigation_report(

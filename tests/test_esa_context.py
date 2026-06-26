@@ -4,6 +4,7 @@ from src.esa_context import (
     calculate_mitigation_summary,
     county_mitigation_context,
     enlist_runoff_points_for_hsg,
+    herbicide_products_for_crop,
 )
 
 
@@ -30,6 +31,16 @@ def test_active_esa_products_for_crop_matches_row_crops():
         "Enlist One",
         "Enlist Duo",
     }
+    assert "Roundup PowerMAX 3" not in {product["name"] for product in products}
+
+
+def test_product_picker_includes_verification_products_for_crop():
+    products = herbicide_products_for_crop("cotton")
+    by_name = {product["name"]: product for product in products}
+
+    assert by_name["Liberty ULTRA"]["esa_status"] == "active"
+    assert by_name["Roundup PowerMAX 3"]["esa_status"] == "verify label/BLT"
+    assert by_name["Other / not listed product"]["esa_status"] == "verify label/BLT"
 
 
 def test_enlist_runoff_points_for_hsg():
@@ -66,7 +77,7 @@ def test_calculate_mitigation_summary_counts_county_practices_and_recordkeeping(
         county="Lee",
         product_name="Liberty ULTRA",
         hsg="A",
-        selected_practice_ids=["no-till", "vegetated-filter-strip"],
+        selected_practice_ids=["cover-crop", "filter-strip-30"],
         recordkeeping=True,
     )
 
@@ -76,6 +87,20 @@ def test_calculate_mitigation_summary_counts_county_practices_and_recordkeeping(
     assert summary["recordkeeping_points"] == 1
     assert summary["total_points"] == 6
     assert summary["meets_points"] is True
+
+
+def test_calculate_mitigation_summary_flags_verification_products():
+    summary = calculate_mitigation_summary(
+        county="Lee",
+        product_name="Roundup PowerMAX 3",
+        hsg="A",
+        selected_practice_ids=["cover-crop"],
+        recordkeeping=True,
+    )
+
+    assert summary["required_points"] is None
+    assert summary["needs_label_verification"] is True
+    assert summary["meets_points"] is False
 
 
 def test_calculate_mitigation_summary_needs_hsg_for_enlist():
