@@ -31,8 +31,4 @@ def get_result_disclaimer(cached_pula_found: bool) -> str:
 
 
 def get_resistance_disclaimer() -> str:
-    return (
-        "Resistance context is based on reported database records and does not "
-        "confirm resistance in a specific field or prove that an unlisted "
-        "herbicide group will be effective."
-    )
+    return "Reported records only; not field confirmation."

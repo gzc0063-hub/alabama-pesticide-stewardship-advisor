@@ -588,9 +588,16 @@ def render_county_support(county: str | None) -> None:
 def render_resistance_context(crop_or_site: str, lat: float | None, lon: float | None) -> None:
     rows = load_resistance_rows()
     matching_rows = resistance_context_for_crop(crop_or_site, rows)
-    st.markdown('<div class="panel"><div class="panel-title">Nearby Herbicide Resistance Context</div>', unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <div class="panel">
+          <div class="panel-title">Nearby Herbicide Resistance Context</div>
+          <div class="soft-note">{get_resistance_disclaimer()}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     st.caption(heap_attribution())
-    st.write(get_resistance_disclaimer())
     st.markdown(
         """
         <div class="report-cta">
