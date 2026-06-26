@@ -517,27 +517,28 @@ def render_resistance_context(crop_or_site: str, lat: float | None, lon: float |
     st.markdown('<div class="panel"><div class="panel-title">Nearby Herbicide Resistance Context</div>', unsafe_allow_html=True)
     st.caption(heap_attribution())
     st.write(get_resistance_disclaimer())
-    if lat is not None and lon is not None:
-        st.write(f"Location checked for context: `{lat:.5f}, {lon:.5f}`")
-    st.info(nearby_resistance_note())
-    st.markdown(
-        """
-        <div class="report-cta">
-          <div class="panel-title">Reviewer Note</div>
-          <div class="soft-note">
-            This section can be improved as finer-scale Alabama resistance observations and Auburn/ACES weed science
-            guidance become available. Especially with a review from Dr. Scott McElroy, our resident
-            <strong>malherbologist</strong>.
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    for line in summarize_resistance_records(matching_rows, limit=5):
-        st.write(f"- {line}")
-    if crop_or_site and matching_rows == rows:
-        st.caption("No exact crop/site tag match was found, so the statewide Alabama resistance context is shown.")
-    st.link_button("Open weedscience.org source", HEAP_URL)
+    with st.expander("Show resistance records and notes"):
+        if lat is not None and lon is not None:
+            st.write(f"Location checked for context: `{lat:.5f}, {lon:.5f}`")
+        st.info(nearby_resistance_note())
+        st.markdown(
+            """
+            <div class="report-cta">
+              <div class="panel-title">Reviewer Note</div>
+              <div class="soft-note">
+                This section can be improved as finer-scale Alabama resistance observations and Auburn/ACES weed science
+                guidance become available. Especially with a review from Dr. Scott McElroy, our resident
+                <strong>malherbologist</strong>.
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        for line in summarize_resistance_records(matching_rows, limit=5):
+            st.write(f"- {line}")
+        if crop_or_site and matching_rows == rows:
+            st.caption("No exact crop/site tag match was found, so the statewide Alabama resistance context is shown.")
+        st.link_button("Open weedscience.org source", HEAP_URL)
     st.markdown("</div>", unsafe_allow_html=True)
 
 
