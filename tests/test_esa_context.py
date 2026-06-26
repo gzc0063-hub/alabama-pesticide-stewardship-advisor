@@ -43,9 +43,19 @@ def test_build_mitigation_report_includes_recordkeeping_and_disclaimer():
         lon=-85.5,
         county="Lee",
         crop_or_site="cotton",
+        pula_intersects=True,
+        nearest_pula={
+            "pula_id": 123,
+            "distance_miles": 0.25,
+            "event_name": "Test species event",
+            "codes": "ABC",
+        },
     )
 
     assert "Lee County" in report
+    assert "32.600000, -85.500000" in report
+    assert "Selected point appears inside a cached PULA polygon" in report
+    assert "Test species event" in report
     assert "Liberty ULTRA" in report
     assert "recordkeeping" in report.lower()
     assert "planning" in report.lower()

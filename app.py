@@ -34,6 +34,7 @@ from src.esa_context import (
     county_mitigation_context,
 )
 from src.extension_contacts import contacts_for_crop_or_site, load_contacts
+from src.pdf_report import build_text_pdf
 from src.reports import (
     build_email_message,
     save_report,
@@ -650,7 +651,7 @@ def render_eddmaps_context(lat: float | None, lon: float | None) -> None:
         if lat is not None and lon is not None:
             st.write(f"Selected location: `{lat:.5f}, {lon:.5f}`")
             st.info(
-                f"This review placeholder is set to {radius}. A future data integration should show the nearest public EDDMapS occurrence records within this radius when a reliable endpoint or approved dataset is available."
+                f"This review placeholder is set to {radius}. EDDMapS does not currently expose a verified proximity endpoint in this app, so the app is not automatically listing invasive plant/species records yet. A future integration should show the nearest public EDDMapS occurrence records within this radius when a reliable endpoint or approved dataset is available."
             )
         else:
             st.write("Choose a location to prepare the EDDMapS proximity review.")
@@ -666,6 +667,8 @@ def render_esa_context(
     county: str | None,
     lat: float | None,
     lon: float | None,
+    pula_intersects: bool | None,
+    nearest_pula: dict | None,
 ) -> None:
     st.markdown('<div class="panel"><div class="panel-title">ESA Mitigation Point Calculator</div>', unsafe_allow_html=True)
     st.caption("Integrated here from the Alabama ESA calculator. Planning context only; always follow the current label, BLT bulletin, and EPA PALM.")
@@ -768,12 +771,15 @@ def render_esa_context(
             hsg=hsg,
             selected_practice_ids=selected_ids,
             recordkeeping=recordkeeping,
+            pula_intersects=pula_intersects,
+            nearest_pula=nearest_pula,
         )
+        pdf_report = build_text_pdf(report, "ESA Mitigation Planning Report")
         st.download_button(
-            "Download mitigation planning report",
-            data=report,
-            file_name="esa-mitigation-planning-report.md",
-            mime="text/markdown",
+            "Download mitigation planning PDF",
+            data=pdf_report,
+            file_name="esa-mitigation-planning-report.pdf",
+            mime="application/pdf",
         )
     else:
         st.caption("The mitigation report will appear after you enter a crop/site and select a product.")
@@ -953,8 +959,9 @@ def render_main_app() -> None:
         st.markdown("</div>", unsafe_allow_html=True)
 
         render_result_panel(selected_lat, selected_lon, pulas)
+        pula_intersects, nearest_pula = location_result(selected_lat, selected_lon, pulas) if selected_lat is not None and selected_lon is not None else (None, None)
         county = selected_county(selected_lat, selected_lon)
-        render_esa_context(crop_or_site, county, selected_lat, selected_lon)
+        render_esa_context(crop_or_site, county, selected_lat, selected_lon, pula_intersects, nearest_pula)
         render_county_support(county)
         render_contacts(crop_or_site)
 

@@ -191,6 +191,8 @@ def build_mitigation_report(
     hsg: str = "Unknown",
     selected_practice_ids: list[str] | None = None,
     recordkeeping: bool = False,
+    pula_intersects: bool | None = None,
+    nearest_pula: dict | None = None,
 ) -> str:
     county_context = county_mitigation_context(county or "") if county else None
     products = active_esa_products_for_crop(crop_or_site)
@@ -224,6 +226,19 @@ def build_mitigation_report(
         f"- County: {county_line}",
         f"- Crop or managed site: {crop_or_site or 'Not entered'}",
     ]
+    if pula_intersects is not None:
+        lines.append(
+            f"- Cached PULA status: {'Selected point appears inside a cached PULA polygon' if pula_intersects else 'No cached PULA polygon intersection found in this snapshot'}"
+        )
+    if nearest_pula:
+        lines.extend(
+            [
+                f"- Nearest cached PULA ID: {nearest_pula.get('pula_id', 'unknown')}",
+                f"- Nearest cached PULA distance: {nearest_pula.get('distance_miles', 0):.2f} miles",
+                f"- Nearest PULA event/reason: {nearest_pula.get('event_name', 'unknown')}",
+                f"- Nearest PULA codes: {nearest_pula.get('codes', 'unknown')}",
+            ]
+        )
     if county_context:
         lines.extend(
             [
@@ -265,13 +280,16 @@ def build_mitigation_report(
         if summary["selected_practices"]:
             lines.append("- Selected practices:")
             for practice in summary["selected_practices"]:
-                lines.append(f"  - {practice['name']} ({practice['points']} point(s))")
+                lines.append(f"  - [ ] {practice['name']} ({practice['points']} point(s))")
+        lines.append(
+            "- Note: mitigation point tracking here applies to the selected ESA-labeled product context. Other herbicides may have different or no current Herbicide Strategy mitigation requirements; always verify the specific label and BLT."
+        )
 
     lines.extend(
         [
             "",
             "## Recordkeeping Note",
-            "The source Alabama ESA calculator treated filing a mitigation report with spray records as recordkeeping documentation for the EPA mitigation menu recordkeeping practice. Confirm current EPA PALM/menu language and the specific product label before relying on any mitigation point.",
+            "If recordkeeping is selected, print or save this worksheet with spray records and check the practices actually adopted. Confirm current EPA PALM/menu language and the specific product label before relying on any mitigation point.",
             "",
             "## Required Follow-Up",
             "- Verify the exact product, application month, and location in EPA Bulletins Live! Two.",
