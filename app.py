@@ -565,22 +565,25 @@ def render_esa_context(
         else:
             st.warning("The entered planning practices do not meet the selected product's point target yet.")
 
-    report = build_mitigation_report(
-        lat,
-        lon,
-        county,
-        crop_or_site,
-        product_name=product_name,
-        hsg=hsg,
-        selected_practice_ids=selected_ids,
-        recordkeeping=recordkeeping,
-    )
-    st.download_button(
-        "Download mitigation planning report",
-        data=report,
-        file_name="esa-mitigation-planning-report.md",
-        mime="text/markdown",
-    )
+    if product_name:
+        report = build_mitigation_report(
+            lat,
+            lon,
+            county,
+            crop_or_site,
+            product_name=product_name,
+            hsg=hsg,
+            selected_practice_ids=selected_ids,
+            recordkeeping=recordkeeping,
+        )
+        st.download_button(
+            "Download mitigation planning report",
+            data=report,
+            file_name="esa-mitigation-planning-report.md",
+            mime="text/markdown",
+        )
+    else:
+        st.caption("The mitigation report will appear after you enter a crop/site and select a product.")
     with st.expander("Show source calculator link"):
         st.link_button("Open Alabama ESA calculator", "https://gzc0063-hub.github.io/alabama-esa-calculator")
     st.markdown("</div>", unsafe_allow_html=True)
