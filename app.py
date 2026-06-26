@@ -710,12 +710,24 @@ def render_main_app() -> None:
         if st.button("Use entered coordinates"):
             selected_lat = manual_lat
             selected_lon = manual_lon
+        st.markdown(
+            """
+            <div class="report-cta">
+              <div class="panel-title">Choose Crop or Managed Site</div>
+              <div class="soft-note">
+                This is optional, but it makes the tool smarter: it filters herbicide-resistance context,
+                opens the right ESA product calculator, and routes you to relevant Auburn/ACES specialists.
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         crop_or_site = st.text_input(
-            "Crop or managed site",
+            "Crop or managed site for this decision",
             placeholder="Example: soybean, cotton, pasture, right-of-way",
             key="crop_or_site",
         )
-        st.caption("Crop/site filters resistance context, Extension contacts, and ESA product examples.")
+        st.caption("Examples: soybean, cotton, corn, pasture, turf, right-of-way.")
         st.markdown("</div>", unsafe_allow_html=True)
 
         render_result_panel(selected_lat, selected_lon, pulas)
