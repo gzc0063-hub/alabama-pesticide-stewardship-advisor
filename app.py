@@ -259,6 +259,31 @@ def apply_theme() -> None:
         div[data-testid="stAlert"] {
           border-radius: 8px;
         }
+        .resource-strip {
+          display:grid;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          gap: 12px;
+          margin: 12px 0 14px;
+        }
+        .resource-link {
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          min-height: 44px;
+          border: 1px solid #c9d3df;
+          border-radius: 8px;
+          background: #ffffff;
+          color: var(--auburn-navy) !important;
+          text-decoration: none !important;
+          font-weight: 650;
+          text-align:center;
+          padding: 8px 10px;
+          box-shadow: 0 1px 2px rgba(12,35,64,.04);
+        }
+        .resource-link:hover {
+          border-color: var(--auburn-orange);
+          color: var(--auburn-orange) !important;
+        }
         div[data-testid="stIFrame"] iframe {
           border: 1px solid var(--line);
           border-radius: 8px;
@@ -366,12 +391,41 @@ def render_header(metadata: dict, summary: dict) -> None:
 
 
 def render_links() -> None:
-    link_cols = st.columns(5)
-    link_cols[0].link_button("EPA BLT", BLT_URL)
-    link_cols[1].link_button("EPA PALM", PALM_URL)
-    link_cols[2].link_button("weedscience.org", HEAP_URL)
-    link_cols[3].link_button("ACES Counties", ACES_COUNTIES_URL)
-    link_cols[4].link_button("ACES Directory", ACES_DIRECTORY_URL)
+    links = [
+        (
+            "EPA BLT",
+            BLT_URL,
+            "EPA Bulletins Live! Two: verify product, location, and application-month pesticide limitations.",
+        ),
+        (
+            "EPA PALM",
+            PALM_URL,
+            "EPA pesticide mitigation menu: review runoff, erosion, and spray-drift mitigation options.",
+        ),
+        (
+            "weedscience.org",
+            HEAP_URL,
+            "International Herbicide-Resistant Weed Database: source for reported resistance records.",
+        ),
+        (
+            "ACES Counties",
+            ACES_COUNTIES_URL,
+            "Find your local Alabama Cooperative Extension county office.",
+        ),
+        (
+            "ACES Directory",
+            ACES_DIRECTORY_URL,
+            "Search ACES agents and specialists by program area.",
+        ),
+    ]
+    markup = '<div class="resource-strip">'
+    for label, url, tooltip in links:
+        markup += (
+            f'<a class="resource-link" href="{url}" target="_blank" '
+            f'rel="noopener noreferrer" title="{tooltip}">{label}</a>'
+        )
+    markup += "</div>"
+    st.markdown(markup, unsafe_allow_html=True)
 
 
 def add_pula_layer(m: folium.Map, display_geojson: dict | None) -> None:
