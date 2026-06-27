@@ -50,9 +50,10 @@ from src.resistance_context import (
 )
 from src.soil_lookup import lookup_hydrologic_soil_group
 from src.spatial import point_in_polygons
+from src.comprehensive_report import build_comprehensive_report
 
 
-st.set_page_config(page_title="PULA Awareness Tool", layout="wide")
+st.set_page_config(page_title="LookAround", layout="wide")
 
 PULA_FULL_PATH = Path("data/pula_alabama.geojson")
 PULA_DISPLAY_PATH = Path("data/pula_alabama_display.geojson")
@@ -368,13 +369,25 @@ def render_header(metadata: dict, summary: dict) -> None:
         f"""
         <div class="au-hero">
           <div class="au-brand-row">
-            <div>
-              <div class="au-title">PULA Awareness Tool</div>
-              <div class="au-subtitle">
-                Alabama-focused pesticide limitation awareness with resistance context and Extension routing.
-                Official compliance decisions still belong in EPA Bulletins Live! Two.
+            <div style="display: flex; gap: 20px; align-items: center;">
+              <svg width="64" height="64" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <!-- Outer magnifying glass / compass ring -->
+                <circle cx="50" cy="45" r="35" fill="none" stroke="#dd550c" stroke-width="8"/>
+                <!-- Magnifying glass handle -->
+                <line x1="75" y1="70" x2="90" y2="85" stroke="#dd550c" stroke-width="10" stroke-linecap="round"/>
+                <!-- Map Pin inner -->
+                <path d="M50 25 C41 25, 34 32, 34 41 C34 52, 50 63, 50 63 C50 63, 66 52, 66 41 C66 32, 59 25, 50 25 Z" fill="#ffffff"/>
+                <!-- Pin dot -->
+                <circle cx="50" cy="38" r="6" fill="#1b365d"/>
+              </svg>
+              <div>
+                <div class="au-title">LookAround</div>
+                <div class="au-subtitle">
+                  Alabama-focused pesticide limitation awareness with resistance context and Extension routing.
+                  Official compliance decisions still belong in EPA Bulletins Live! Two.
+                </div>
+                <div class="au-accent"></div>
               </div>
-              <div class="au-accent"></div>
             </div>
             <div class="au-lockup">
               <div class="logo-card auburn">{auburn_markup}</div>
@@ -654,6 +667,9 @@ def render_eddmaps_context(lat: float | None, lon: float | None) -> None:
             st.info(
                 f"This review placeholder is set to {radius}. EDDMapS does not currently expose a verified proximity endpoint in this app, so the app is not automatically listing invasive plant/species records yet. A future integration should show the nearest public EDDMapS occurrence records within this radius when a reliable endpoint or approved dataset is available."
             )
+            # Add a dynamic link to EDDMapS distribution map if lat/lon is available.
+            # While EDDMaps doesn't have a simple URL scheme for point radius, we can explain how to use the site.
+            st.write("**Extension Note:** When using EDDMapS, search your county to see what invasive weeds have been reported locally.")
         else:
             st.write("Choose a location to prepare the EDDMapS proximity review.")
         st.write(
@@ -996,6 +1012,37 @@ def render_main_app() -> None:
     with left:
         render_resistance_context(crop_or_site, selected_lat, selected_lon)
         render_eddmaps_context(selected_lat, selected_lon)
+
+        st.markdown('<div class="panel"><div class="panel-title">Download Context Report</div>', unsafe_allow_html=True)
+        st.write("Get a comprehensive markdown report of all site context (PULA, soil, resistance) and expert advice for this location.")
+
+        intersects, nearest = False, None
+        auto_hsg = "Unknown"
+
+        if selected_lat is not None and selected_lon is not None:
+            intersects, nearest = location_result(selected_lat, selected_lon, pulas)
+
+            # We need the HSG for the report. If they used the ESA context, it was calculated. We will quickly grab it if available.
+            # But we need to make sure we don't trigger the API again if possible, or just default.
+            soil_result = cached_soil_lookup(round(float(selected_lat), 6), round(float(selected_lon), 6))
+            if soil_result.get("hsg"):
+                auto_hsg = soil_result["hsg"]
+
+        rows = load_resistance_rows()
+        matching_rows = resistance_context_for_crop(crop_or_site, rows)
+        res_summaries = summarize_resistance_records(matching_rows, limit=5)
+
+        comp_report = build_comprehensive_report(
+            selected_lat, selected_lon, county, crop_or_site, nearest, auto_hsg, res_summaries
+        )
+        st.download_button(
+            "Download Comprehensive Site Context Report",
+            data=comp_report,
+            file_name="comprehensive-site-context-report.md",
+            mime="text/markdown",
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
+
         render_report_cta()
 
 
