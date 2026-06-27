@@ -51,7 +51,7 @@ from src.spatial import point_in_polygons
 from src.comprehensive_report import build_comprehensive_report
 
 
-st.set_page_config(page_title="PULA Awareness Tool", layout="wide")
+st.set_page_config(page_title="LookAround", layout="wide")
 
 PULA_FULL_PATH = Path("data/pula_alabama.geojson")
 PULA_DISPLAY_PATH = Path("data/pula_alabama_display.geojson")
@@ -367,13 +367,25 @@ def render_header(metadata: dict, summary: dict) -> None:
         f"""
         <div class="au-hero">
           <div class="au-brand-row">
-            <div>
-              <div class="au-title">PULA Awareness Tool</div>
-              <div class="au-subtitle">
-                Alabama-focused pesticide limitation awareness with resistance context and Extension routing.
-                Official compliance decisions still belong in EPA Bulletins Live! Two.
+            <div style="display: flex; gap: 20px; align-items: center;">
+              <svg width="64" height="64" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <!-- Outer magnifying glass / compass ring -->
+                <circle cx="50" cy="45" r="35" fill="none" stroke="#dd550c" stroke-width="8"/>
+                <!-- Magnifying glass handle -->
+                <line x1="75" y1="70" x2="90" y2="85" stroke="#dd550c" stroke-width="10" stroke-linecap="round"/>
+                <!-- Map Pin inner -->
+                <path d="M50 25 C41 25, 34 32, 34 41 C34 52, 50 63, 50 63 C50 63, 66 52, 66 41 C66 32, 59 25, 50 25 Z" fill="#ffffff"/>
+                <!-- Pin dot -->
+                <circle cx="50" cy="38" r="6" fill="#1b365d"/>
+              </svg>
+              <div>
+                <div class="au-title">LookAround</div>
+                <div class="au-subtitle">
+                  Alabama-focused pesticide limitation awareness with resistance context and Extension routing.
+                  Official compliance decisions still belong in EPA Bulletins Live! Two.
+                </div>
+                <div class="au-accent"></div>
               </div>
-              <div class="au-accent"></div>
             </div>
             <div class="au-lockup">
               <div class="logo-card auburn">{auburn_markup}</div>

@@ -69,7 +69,7 @@ def build_email_message(report: dict, recipient: dict) -> dict:
     subject = f"Suspected resistance report: {report.get('suspected_weed', 'unknown weed')}"
     body = (
         "A suspected herbicide-resistance report was submitted through the "
-        "PULA Awareness Tool. This is not a confirmation of resistance.\n\n"
+        "LookAround. This is not a confirmation of resistance.\n\n"
         f"Recipient: {recipient.get('name', '')} <{recipient.get('email', '')}>\n"
         f"Reporter: {report.get('contact_name', '')} ({report.get('reporter_role', '')})\n"
         f"Email: {report.get('contact_email', '')}\n"

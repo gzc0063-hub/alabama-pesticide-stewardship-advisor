@@ -10,7 +10,7 @@ HEAP_CITATION = (
 
 def get_primary_disclaimer() -> str:
     return (
-        "The PULA Awareness Tool is an educational planning tool, not a "
+        "The LookAround is an educational planning tool, not a "
         "compliance system. The label is the law. This tool does not replace "
         "EPA Bulletins Live! Two, EPA PALM, pesticide label requirements, "
         "state or local restrictions (including Section 24(c) SLN labels), "

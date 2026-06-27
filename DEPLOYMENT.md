@@ -15,7 +15,7 @@ Recommended public-facing name:
 
 **Alabama Pesticide Stewardship Advisor**
 
-The current app can keep `PULA Awareness Tool` during review, but the broader name better reflects the full scope: PULA awareness, ESA mitigation planning, USDA soil/HSG lookup, resistance context, EDDMapS occurrence context, Extension routing, and suspected resistance reporting.
+The current app can keep `LookAround` during review, but the broader name better reflects the full scope: PULA awareness, ESA mitigation planning, USDA soil/HSG lookup, resistance context, EDDMapS occurrence context, Extension routing, and suspected resistance reporting.
 
 Suggested GitHub repository slug:
 
