@@ -48,6 +48,7 @@ from src.resistance_context import (
 )
 from src.soil_lookup import lookup_hydrologic_soil_group
 from src.spatial import point_in_polygons
+from src.comprehensive_report import build_comprehensive_report
 
 
 st.set_page_config(page_title="PULA Awareness Tool", layout="wide")
@@ -652,6 +653,9 @@ def render_eddmaps_context(lat: float | None, lon: float | None) -> None:
             st.info(
                 f"This review placeholder is set to {radius}. A future data integration should show the nearest public EDDMapS occurrence records within this radius when a reliable endpoint or approved dataset is available."
             )
+            # Add a dynamic link to EDDMapS distribution map if lat/lon is available.
+            # While EDDMaps doesn't have a simple URL scheme for point radius, we can explain how to use the site.
+            st.write("**Extension Note:** When using EDDMapS, search your county to see what invasive weeds have been reported locally.")
         else:
             st.write("Choose a location to prepare the EDDMapS proximity review.")
         st.write(
@@ -961,6 +965,37 @@ def render_main_app() -> None:
     with left:
         render_resistance_context(crop_or_site, selected_lat, selected_lon)
         render_eddmaps_context(selected_lat, selected_lon)
+
+        st.markdown('<div class="panel"><div class="panel-title">Download Context Report</div>', unsafe_allow_html=True)
+        st.write("Get a comprehensive markdown report of all site context (PULA, soil, resistance) and expert advice for this location.")
+
+        intersects, nearest = False, None
+        auto_hsg = "Unknown"
+
+        if selected_lat is not None and selected_lon is not None:
+            intersects, nearest = location_result(selected_lat, selected_lon, pulas)
+
+            # We need the HSG for the report. If they used the ESA context, it was calculated. We will quickly grab it if available.
+            # But we need to make sure we don't trigger the API again if possible, or just default.
+            soil_result = cached_soil_lookup(round(float(selected_lat), 6), round(float(selected_lon), 6))
+            if soil_result.get("hsg"):
+                auto_hsg = soil_result["hsg"]
+
+        rows = load_resistance_rows()
+        matching_rows = resistance_context_for_crop(crop_or_site, rows)
+        res_summaries = summarize_resistance_records(matching_rows, limit=5)
+
+        comp_report = build_comprehensive_report(
+            selected_lat, selected_lon, county, crop_or_site, nearest, auto_hsg, res_summaries
+        )
+        st.download_button(
+            "Download Comprehensive Site Context Report",
+            data=comp_report,
+            file_name="comprehensive-site-context-report.md",
+            mime="text/markdown",
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
+
         render_report_cta()
 
 

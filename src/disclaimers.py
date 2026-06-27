@@ -11,8 +11,9 @@ HEAP_CITATION = (
 def get_primary_disclaimer() -> str:
     return (
         "The PULA Awareness Tool is an educational planning tool, not a "
-        "compliance system. It does not replace EPA Bulletins Live! Two, "
-        "EPA PALM, pesticide label requirements, state or local restrictions, "
+        "compliance system. The label is the law. This tool does not replace "
+        "EPA Bulletins Live! Two, EPA PALM, pesticide label requirements, "
+        "state or local restrictions (including Section 24(c) SLN labels), "
         "or guidance from Extension professionals."
     )
 
@@ -20,14 +21,14 @@ def get_primary_disclaimer() -> str:
 def get_result_disclaimer(cached_pula_found: bool) -> str:
     if cached_pula_found:
         return (
-            "A cached PULA polygon may intersect this point. Verify in EPA "
-            "Bulletins Live! Two for your product, location, and application "
-            "month before applying."
+            "A cached PULA polygon may intersect this point. This is an educational snapshot. "
+            "You MUST verify official requirements in EPA Bulletins Live! Two for your specific "
+            "product, location, and application month before applying."
         )
     return (
-        "No cached PULA was found in this educational snapshot. Verify in EPA "
-        "Bulletins Live! Two for your product, location, and application month "
-        "before applying."
+        "No cached PULA was found in this educational snapshot. "
+        "You MUST still verify official requirements in EPA Bulletins Live! Two for your "
+        "specific product, location, and application month before applying."
     )
 
 

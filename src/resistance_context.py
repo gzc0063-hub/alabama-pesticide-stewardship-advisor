@@ -42,5 +42,7 @@ def nearby_resistance_note() -> str:
         "Nearby field-level resistance reports are not available in this snapshot. "
         "The records shown are Alabama state-level reports from the International "
         "Herbicide-Resistant Weed Database, so they are context for scouting and "
-        "Extension follow-up, not confirmation for this field."
+        "Extension follow-up, not confirmation for this field. "
+        "Agronomist Note: Consider tank-mixing and using multiple effective sites of "
+        "action to delay resistance."
     )
