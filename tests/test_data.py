@@ -5,6 +5,7 @@ import pandas as pd
 from shapely.geometry import Polygon
 
 from src.data_epa import (
+    format_epoch_or_text_date,
     load_snapshot_metadata,
     nearest_pula_summary,
     pula_snapshot_summary,
@@ -95,3 +96,8 @@ def test_nearest_pula_summary_returns_distance_and_attributes():
     assert result["effective_date"] == "2026-01-01"
     assert result["distance_miles"] > 5
     assert result["distance_miles"] < 15
+
+
+def test_format_epoch_or_text_date_converts_milliseconds():
+    assert format_epoch_or_text_date(1770595200000) == "2026-02-09"
+    assert format_epoch_or_text_date("2026-01-01") == "2026-01-01"

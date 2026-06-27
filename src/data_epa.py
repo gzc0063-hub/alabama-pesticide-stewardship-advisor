@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from datetime import datetime, timezone
 
 import geopandas as gpd
 from shapely.geometry import Point
@@ -54,6 +55,22 @@ def pula_snapshot_summary(pulas: gpd.GeoDataFrame) -> dict:
     }
 
 
+def _native_value(value):
+    if hasattr(value, "item"):
+        return value.item()
+    return value
+
+
+def format_epoch_or_text_date(value) -> str:
+    value = _native_value(value)
+    if value in (None, "", "nan"):
+        return ""
+    if isinstance(value, (int, float)):
+        timestamp = value / 1000 if value > 10000000000 else value
+        return datetime.fromtimestamp(timestamp, tz=timezone.utc).date().isoformat()
+    return str(value)
+
+
 def nearest_pula_summary(lat: float, lon: float, pulas: gpd.GeoDataFrame) -> dict | None:
     if pulas.empty:
         return None
@@ -67,11 +84,11 @@ def nearest_pula_summary(lat: float, lon: float, pulas: gpd.GeoDataFrame) -> dic
     nearest = source.loc[nearest_index]
     distance_miles = float(distances.loc[nearest_index] / METERS_PER_MILE)
     return {
-        "pula_id": nearest.get("pula_id", ""),
-        "event_name": nearest.get("event_name", ""),
-        "status": nearest.get("status", ""),
-        "codes": nearest.get("codes", ""),
-        "effective_date": nearest.get("effective_date", ""),
-        "published_time_stamp": nearest.get("published_time_stamp", ""),
+        "pula_id": _native_value(nearest.get("pula_id", "")),
+        "event_name": _native_value(nearest.get("event_name", "")),
+        "status": _native_value(nearest.get("status", "")),
+        "codes": _native_value(nearest.get("codes", "")),
+        "effective_date": format_epoch_or_text_date(nearest.get("effective_date", "")),
+        "published_time_stamp": format_epoch_or_text_date(nearest.get("published_time_stamp", "")),
         "distance_miles": distance_miles,
     }

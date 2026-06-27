@@ -79,6 +79,40 @@ CROP_SITE_OPTIONS = [
     "Other",
 ]
 
+DEFAULT_LAT = 32.8067
+DEFAULT_LON = -86.7911
+
+
+def get_selected_location() -> tuple[float | None, float | None]:
+    lat = st.session_state.get("selected_lat")
+    lon = st.session_state.get("selected_lon")
+    if lat is None or lon is None:
+        return None, None
+    return float(lat), float(lon)
+
+
+def set_selected_location(lat: float, lon: float, source: str) -> None:
+    st.session_state["selected_lat"] = float(lat)
+    st.session_state["selected_lon"] = float(lon)
+    st.session_state["selected_location_source"] = source
+
+
+def pula_meaning_text(nearest: dict | None, intersects: bool | None) -> str:
+    if not nearest:
+        return "No cached PULA feature is available for this location snapshot."
+    event = nearest.get("event_name") or "an EPA PULA event"
+    distance = nearest.get("distance_miles")
+    distance_text = f"{distance:.2f} miles away" if isinstance(distance, (int, float)) else "nearby"
+    if intersects:
+        return (
+            f"The selected point appears inside a cached PULA for {event}. "
+            "This means EPA BLT may list product-, timing-, or site-specific limitations here."
+        )
+    return (
+        f"The nearest cached PULA is {distance_text} and is tied to {event}. "
+        "It does not automatically mean your field is restricted, but it tells you what to verify in BLT."
+    )
+
 
 def apply_theme() -> None:
     st.markdown(
@@ -475,6 +509,60 @@ def add_pula_layer(m: folium.Map, display_geojson: dict | None) -> None:
     ).add_to(m)
 
 
+def add_selected_location_layer(
+    m: folium.Map,
+    lat: float | None,
+    lon: float | None,
+    pulas,
+    nearest: dict | None,
+) -> None:
+    if lat is None or lon is None:
+        return
+    folium.CircleMarker(
+        location=[lat, lon],
+        radius=8,
+        color="#0c2340",
+        weight=3,
+        fill=True,
+        fill_color="#dd550c",
+        fill_opacity=0.95,
+        tooltip="Selected field/location",
+    ).add_to(m)
+    folium.Marker(
+        location=[lat, lon],
+        tooltip=f"Selected location: {lat:.5f}, {lon:.5f}",
+    ).add_to(m)
+    if pulas is None or not nearest or not nearest.get("pula_id"):
+        return
+    matched = pulas[pulas["pula_id"] == nearest["pula_id"]]
+    if matched.empty:
+        return
+    folium.GeoJson(
+        matched.__geo_interface__,
+        name="Nearest cached PULA",
+        style_function=lambda _: {
+            "fillColor": "#1b365d",
+            "color": "#0c2340",
+            "weight": 4,
+            "fillOpacity": 0.18,
+        },
+        tooltip=folium.GeoJsonTooltip(
+            fields=["pula_id", "event_name", "status"],
+            aliases=["Nearest PULA ID", "Event", "Status"],
+            sticky=False,
+        ),
+    ).add_to(m)
+    centroid = matched.geometry.iloc[0].centroid
+    folium.PolyLine(
+        locations=[[lat, lon], [centroid.y, centroid.x]],
+        color="#0c2340",
+        weight=2,
+        opacity=0.7,
+        dash_array="8,6",
+        tooltip="Selected location to nearest cached PULA",
+    ).add_to(m)
+
+
 def render_report_cta() -> None:
     st.markdown(
         """
@@ -537,16 +625,17 @@ def selected_county(lat: float | None, lon: float | None) -> str | None:
 
 
 def render_result_panel(lat: float | None, lon: float | None, pulas) -> None:
-    st.markdown('<div class="panel"><div class="panel-title">Nearest Cached PULA</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel"><div class="panel-title">Step 1: PULA Meaning for This Location</div>', unsafe_allow_html=True)
     if lat is None or lon is None:
         st.markdown(
-            '<div class="soft-note">Use browser location, map click, or coordinates to check the nearest cached PULA.</div></div>',
+            '<div class="soft-note">Enter coordinates, use browser location, or click the map. The selected point and nearest cached PULA will be highlighted on the map.</div></div>',
             unsafe_allow_html=True,
         )
         return
 
     intersects, nearest = location_result(lat, lon, pulas)
     st.info(get_result_disclaimer(cached_pula_found=intersects))
+    st.markdown(f"**Plain-language meaning:** {pula_meaning_text(nearest, intersects)}")
     if intersects:
         st.error("This selected point appears to fall inside at least one cached Alabama-intersecting PULA polygon. Treat this as a prompt to verify the exact product, month, and use site in EPA BLT.")
     st.write(f"Location checked: `{lat:.5f}, {lon:.5f}`")
@@ -555,13 +644,16 @@ def render_result_panel(lat: float | None, lon: float | None, pulas) -> None:
         st.write(f"**Nearest PULA ID:** {nearest.get('pula_id', '')}")
         if nearest.get("event_name"):
             st.write(f"**Event:** {nearest['event_name']}")
-            st.caption("This event name is the EPA source metadata explaining why this PULA polygon exists in the cached layer.")
+            st.caption("The event name is EPA source metadata describing why the PULA polygon exists in the cached layer.")
         if nearest.get("codes"):
             st.write(f"**PULA reason/codes:** {nearest['codes']}")
+            st.caption("Codes are EPA bulletin/source codes. They must be interpreted in the current BLT bulletin for the exact product and application month.")
         if nearest.get("status"):
             st.write(f"**Status:** {nearest['status']}")
         if nearest.get("effective_date"):
-            st.write(f"**Effective date field:** {nearest['effective_date']}")
+            st.write(f"**Effective date:** {nearest['effective_date']}")
+        if nearest.get("published_time_stamp"):
+            st.write(f"**Published:** {nearest['published_time_stamp']}")
     st.link_button("Verify this location in EPA BLT", BLT_URL)
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -680,15 +772,31 @@ def render_eddmaps_context(lat: float | None, lon: float | None) -> None:
 
 
 def render_esa_context(
-    crop_or_site: str,
     county: str | None,
     lat: float | None,
     lon: float | None,
     pula_intersects: bool | None,
     nearest_pula: dict | None,
-) -> None:
+) -> str:
     st.markdown('<div class="panel"><div class="panel-title">ESA Mitigation Point Calculator</div>', unsafe_allow_html=True)
-    st.caption("Integrated here from the Alabama ESA calculator. Planning context only; always follow the current label, BLT bulletin, and EPA PALM.")
+    st.caption("Step 2 after location/PULA review. Choose a crop/site only if you want product-specific ESA planning.")
+    crop_choice = st.selectbox(
+        "Crop or managed site for this ESA decision",
+        CROP_SITE_OPTIONS,
+        format_func=lambda value: "Skip ESA crop/product planning" if value == "" else value,
+        key="crop_or_site",
+    )
+    crop_or_site = crop_choice.lower()
+    if crop_choice == "Other":
+        crop_or_site = st.text_input(
+            "Enter other crop or managed site",
+            placeholder="Example: roadside, nursery, specialty crop",
+            key="crop_or_site_other",
+        ).strip().lower()
+    st.caption(
+        "Crop/site selection filters product examples, resistance context, reports, and Auburn/ACES contacts. "
+        "You can still download a location/PULA report without choosing a crop."
+    )
     if county:
         context = county_mitigation_context(county)
         if context:
@@ -830,6 +938,7 @@ def render_esa_context(
     with st.expander("Show source calculator link"):
         st.link_button("Open Alabama ESA calculator", "https://gzc0063-hub.github.io/alabama-esa-calculator")
     st.markdown("</div>", unsafe_allow_html=True)
+    return crop_or_site
 
 
 def render_report_form() -> None:
@@ -917,6 +1026,13 @@ def render_main_app() -> None:
     pulas = load_pulas(str(PULA_FULL_PATH))
     display_geojson = load_display_geojson(str(PULA_DISPLAY_PATH))
     summary = pula_snapshot_summary(pulas) if pulas is not None else {}
+    selected_lat, selected_lon = get_selected_location()
+    pula_intersects, nearest_pula = (
+        location_result(selected_lat, selected_lon, pulas)
+        if selected_lat is not None and selected_lon is not None
+        else (None, None)
+    )
+    county = selected_county(selected_lat, selected_lon)
 
     render_header(metadata if validate_metadata(metadata) else {}, summary)
     render_links()
@@ -944,6 +1060,7 @@ def render_main_app() -> None:
         )
         m.fit_bounds(ALABAMA_MAP_BOUNDS)
         add_pula_layer(m, display_geojson)
+        add_selected_location_layer(m, selected_lat, selected_lon, pulas, nearest_pula)
         folium.LayerControl(collapsed=True).add_to(m)
         map_state = st_folium(
             m,
@@ -956,65 +1073,59 @@ def render_main_app() -> None:
         st.markdown("</div>", unsafe_allow_html=True)
 
     clicked = map_state.get("last_clicked") if map_state else None
-    selected_lat = clicked.get("lat") if clicked else None
-    selected_lon = clicked.get("lng") if clicked else None
+    if clicked and clicked.get("lat") is not None and clicked.get("lng") is not None:
+        clicked_lat = float(clicked["lat"])
+        clicked_lon = float(clicked["lng"])
+        if clicked_lat != selected_lat or clicked_lon != selected_lon:
+            set_selected_location(clicked_lat, clicked_lon, "map click")
+            st.rerun()
 
     with right:
         st.markdown('<div class="panel"><div class="panel-title">Check a Location</div>', unsafe_allow_html=True)
-        st.caption("Allow browser location, click the map, or enter coordinates manually.")
+        st.caption("Start here. After a location is set, the map highlights the point and nearest cached PULA.")
         if st.button("Use my browser location"):
             st.session_state["request_browser_location"] = True
         if st.session_state.get("request_browser_location"):
             location = streamlit_geolocation()
         if location and location.get("latitude") is not None and location.get("longitude") is not None:
-            selected_lat = float(location["latitude"])
-            selected_lon = float(location["longitude"])
-        manual_lat = st.number_input("Latitude", value=selected_lat or 32.8067, format="%.6f")
-        manual_lon = st.number_input("Longitude", value=selected_lon or -86.7911, format="%.6f")
+            set_selected_location(float(location["latitude"]), float(location["longitude"]), "browser location")
+            st.session_state["request_browser_location"] = False
+            st.rerun()
+        manual_lat = st.number_input("Latitude", value=selected_lat or DEFAULT_LAT, format="%.6f")
+        manual_lon = st.number_input("Longitude", value=selected_lon or DEFAULT_LON, format="%.6f")
         if st.button("Use entered coordinates"):
-            selected_lat = manual_lat
-            selected_lon = manual_lon
-        st.markdown(
-            """
-            <div class="report-cta">
-              <div class="panel-title">Choose Crop or Managed Site</div>
-              <div class="soft-note">
-                This is optional, but it makes the tool smarter: it filters herbicide-resistance context,
-                opens the right ESA product calculator, and routes you to relevant Auburn/ACES specialists.
-              </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        crop_choice = st.selectbox(
-            "Crop or managed site for this decision",
-            CROP_SITE_OPTIONS,
-            format_func=lambda value: "Select crop or site" if value == "" else value,
-            key="crop_or_site",
-        )
-        crop_or_site = crop_choice.lower()
-        if crop_choice == "Other":
-            crop_or_site = st.text_input(
-                "Enter other crop or managed site",
-                placeholder="Example: roadside, nursery, specialty crop",
-                key="crop_or_site_other",
-            )
-        st.caption("This selection filters resistance context, ESA product examples, and Extension contacts.")
+            set_selected_location(manual_lat, manual_lon, "entered coordinates")
+            st.rerun()
+        if selected_lat is not None and selected_lon is not None:
+            source = st.session_state.get("selected_location_source", "selected location")
+            st.success(f"Using {source}: {selected_lat:.5f}, {selected_lon:.5f}")
+            if county:
+                st.write(f"**County:** {county} County")
+        else:
+            st.info("No location selected yet. Coordinates are required before PULA and ESA context become meaningful.")
         st.markdown("</div>", unsafe_allow_html=True)
 
         render_result_panel(selected_lat, selected_lon, pulas)
-        pula_intersects, nearest_pula = location_result(selected_lat, selected_lon, pulas) if selected_lat is not None and selected_lon is not None else (None, None)
-        county = selected_county(selected_lat, selected_lon)
-        render_esa_context(crop_or_site, county, selected_lat, selected_lon, pula_intersects, nearest_pula)
-        render_county_support(county)
-        render_contacts(crop_or_site)
+        crop_or_site = render_esa_context(county, selected_lat, selected_lon, pula_intersects, nearest_pula)
 
     with left:
+        st.markdown('<div class="panel"><div class="panel-title">Step 3: Nearby Area Details</div>', unsafe_allow_html=True)
+        st.caption("These are context layers for scouting and follow-up. They do not replace BLT, the product label, or field diagnosis.")
+        st.markdown("</div>", unsafe_allow_html=True)
         render_resistance_context(crop_or_site, selected_lat, selected_lon)
         render_eddmaps_context(selected_lat, selected_lon)
 
-        st.markdown('<div class="panel"><div class="panel-title">Download Context Report</div>', unsafe_allow_html=True)
-        st.write("Get a comprehensive markdown report of all site context (PULA, soil, resistance) and expert advice for this location.")
+        st.markdown('<div class="panel"><div class="panel-title">Step 4: Crop and Extension Support</div>', unsafe_allow_html=True)
+        if crop_or_site:
+            st.write("Contacts below are filtered by the selected crop/site where possible.")
+        else:
+            st.info("Choose a crop/site in the ESA panel if you want crop-focused specialist routing. County office lookup still works from location alone.")
+        st.markdown("</div>", unsafe_allow_html=True)
+        render_county_support(county)
+        render_contacts(crop_or_site)
+
+        st.markdown('<div class="panel"><div class="panel-title">Step 5: Download Report</div>', unsafe_allow_html=True)
+        st.write("Download a site-context report even if you skipped ESA point planning. If you selected a product above, use the ESA PDF button for mitigation-point details.")
 
         intersects, nearest = False, None
         auto_hsg = "Unknown"
@@ -1033,7 +1144,7 @@ def render_main_app() -> None:
         res_summaries = summarize_resistance_records(matching_rows, limit=5)
 
         comp_report = build_comprehensive_report(
-            selected_lat, selected_lon, county, crop_or_site, nearest, auto_hsg, res_summaries
+            selected_lat, selected_lon, county, crop_or_site, nearest, intersects, auto_hsg, res_summaries
         )
         st.download_button(
             "Download Comprehensive Site Context Report",

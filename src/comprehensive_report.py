@@ -8,6 +8,7 @@ def build_comprehensive_report(
     county: str | None,
     crop_or_site: str,
     pula_summary: dict | None,
+    pula_intersects: bool | None,
     hsg: str,
     resistance_summaries: list[str],
 ) -> str:
@@ -37,10 +38,13 @@ def build_comprehensive_report(
 
     if pula_summary:
         lines.extend([
+            f"- **Selected point inside cached PULA:** {'Yes' if pula_intersects else 'No'}",
             f"- **Nearest Cached PULA Distance:** {pula_summary.get('distance_miles', 'N/A'):.2f} miles",
             f"- **Nearest PULA ID:** {pula_summary.get('pula_id', 'Unknown')}",
             f"- **Event (Why it exists):** {pula_summary.get('event_name', 'Unknown')}",
+            f"- **PULA Codes:** {pula_summary.get('codes', 'Unknown')}",
             f"- **Status:** {pula_summary.get('status', 'Unknown')}",
+            f"- **Effective Date:** {pula_summary.get('effective_date', 'Unknown')}",
             "",
             "**Regulatory Specialist Note:** A PULA (Pesticide Use Limitation Area) polygon indicates where the EPA has identified potential risk to listed endangered species or critical habitats. You **MUST** check EPA Bulletins Live! Two (BLT) for your specific application month, as these polygons can change and this tool is only a snapshot.",
             f"**Verify here:** [EPA Bulletins Live! Two]({BLT_URL})"
