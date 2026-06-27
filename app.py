@@ -537,22 +537,20 @@ def add_selected_location_layer(
     matched = pulas[pulas["pula_id"] == nearest["pula_id"]]
     if matched.empty:
         return
-    folium.GeoJson(
-        matched.__geo_interface__,
-        name="Nearest cached PULA",
-        style_function=lambda _: {
-            "fillColor": "#1b365d",
-            "color": "#0c2340",
-            "weight": 4,
-            "fillOpacity": 0.18,
-        },
-        tooltip=folium.GeoJsonTooltip(
-            fields=["pula_id", "event_name", "status"],
-            aliases=["Nearest PULA ID", "Event", "Status"],
-            sticky=False,
+    centroid = matched.geometry.iloc[0].centroid
+    folium.CircleMarker(
+        location=[centroid.y, centroid.x],
+        radius=10,
+        color="#0c2340",
+        weight=3,
+        fill=True,
+        fill_color="#1b365d",
+        fill_opacity=0.72,
+        tooltip=(
+            f"Nearest cached PULA {nearest.get('pula_id', '')}: "
+            f"{nearest.get('event_name', '')}"
         ),
     ).add_to(m)
-    centroid = matched.geometry.iloc[0].centroid
     folium.PolyLine(
         locations=[[lat, lon], [centroid.y, centroid.x]],
         color="#0c2340",
@@ -807,16 +805,7 @@ def render_esa_context(
     else:
         st.write("Choose a location to show county runoff-vulnerability context from the Alabama ESA calculator.")
 
-    soil_result = None
     auto_hsg = "Unknown"
-    if lat is not None and lon is not None:
-        with st.spinner("Checking USDA soil survey for hydrologic soil group..."):
-            soil_result = cached_soil_lookup(round(float(lat), 6), round(float(lon), 6))
-        if soil_result.get("hsg"):
-            auto_hsg = soil_result["hsg"]
-            st.success(f"USDA Soil Data Access HSG lookup: {auto_hsg}")
-        elif soil_result.get("error"):
-            st.caption(f"USDA HSG lookup: {soil_result['error']}")
 
     products = herbicide_products_for_crop(crop_or_site)
     product_name = None
@@ -828,6 +817,15 @@ def render_esa_context(
     elif not products:
         st.write("No herbicide product example in the integrated calculator matched this crop/site.")
     else:
+        if lat is not None and lon is not None:
+            with st.spinner("Checking USDA soil survey for hydrologic soil group..."):
+                soil_result = cached_soil_lookup(round(float(lat), 6), round(float(lon), 6))
+            if soil_result.get("hsg"):
+                auto_hsg = soil_result["hsg"]
+                st.session_state["last_hsg"] = auto_hsg
+                st.success(f"USDA Soil Data Access HSG lookup: {auto_hsg}")
+            elif soil_result.get("error"):
+                st.caption(f"USDA HSG lookup: {soil_result['error']}")
         st.info(LABEL_COVERAGE_NOTE)
         product_name = st.selectbox(
             "Herbicide product for ESA planning",
@@ -1128,16 +1126,10 @@ def render_main_app() -> None:
         st.write("Download a site-context report even if you skipped ESA point planning. If you selected a product above, use the ESA PDF button for mitigation-point details.")
 
         intersects, nearest = False, None
-        auto_hsg = "Unknown"
+        auto_hsg = st.session_state.get("last_hsg", "Unknown")
 
         if selected_lat is not None and selected_lon is not None:
             intersects, nearest = location_result(selected_lat, selected_lon, pulas)
-
-            # We need the HSG for the report. If they used the ESA context, it was calculated. We will quickly grab it if available.
-            # But we need to make sure we don't trigger the API again if possible, or just default.
-            soil_result = cached_soil_lookup(round(float(selected_lat), 6), round(float(selected_lon), 6))
-            if soil_result.get("hsg"):
-                auto_hsg = soil_result["hsg"]
 
         rows = load_resistance_rows()
         matching_rows = resistance_context_for_crop(crop_or_site, rows)
